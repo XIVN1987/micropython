@@ -1,0 +1,20 @@
+build-SWM320Lite/misc/fifo.o: misc/fifo.c \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdint.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/stdint.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_default_types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/features.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_newlib_version.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_intsup.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_stdint.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdbool.h \
+ misc/fifo.h
+misc/fifo.c :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdint.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/stdint.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_default_types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/features.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_newlib_version.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_intsup.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_stdint.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdbool.h :
+ misc/fifo.h :

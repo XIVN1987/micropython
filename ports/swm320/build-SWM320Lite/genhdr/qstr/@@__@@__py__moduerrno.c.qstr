@@ -1,0 +1,7 @@
+Q(__name__)
+Q(uerrno)
+Q(EPERM)
+Q(EIO)
+Q(ENODEV)
+Q(EINVAL)
+Q(ETIMEDOUT)

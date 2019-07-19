@@ -1,0 +1,42 @@
+build-M482Lite/extmod/modussl_mbedtls.o: ../../extmod/modussl_mbedtls.c \
+ ../../py/mpconfig.h mpconfigport.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdint.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/stdint.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_default_types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/features.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_newlib_version.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_intsup.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_stdint.h \
+ boards/M482Lite/mpconfigboard.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/alloca.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_ansi.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/newlib.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/config.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/ieeefp.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/reent.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_ansi.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stddef.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/lock.h
+../../extmod/modussl_mbedtls.c :
+ ../../py/mpconfig.h mpconfigport.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdint.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/stdint.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_default_types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/features.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_newlib_version.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_intsup.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_stdint.h :
+ boards/M482Lite/mpconfigboard.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/alloca.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_ansi.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/newlib.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/config.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/ieeefp.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/reent.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_ansi.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stddef.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/lock.h :

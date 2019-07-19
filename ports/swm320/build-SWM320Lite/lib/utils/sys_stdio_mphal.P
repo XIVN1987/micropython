@@ -1,0 +1,105 @@
+build-SWM320Lite/lib/utils/sys_stdio_mphal.o: \
+ ../../lib/utils/sys_stdio_mphal.c \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/stdio.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_ansi.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/newlib.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_newlib_version.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/config.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/ieeefp.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/features.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/cdefs.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_default_types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stddef.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdarg.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/reent.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_ansi.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/lock.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_stdint.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/endian.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_endian.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/select.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_sigset.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_timeval.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/timespec.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_timespec.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_pthreadtypes.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/types.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/stdio.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/string.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/xlocale.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/string.h \
+ ../../py/obj.h ../../py/mpconfig.h mpconfigport.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdint.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/stdint.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_intsup.h \
+ boards/SWM320Lite/mpconfigboard.h chip/SWM320.h \
+ ../../lib/cmsis/inc/core_cm4.h ../../lib/cmsis/inc/cmsis_version.h \
+ ../../lib/cmsis/inc/cmsis_compiler.h ../../lib/cmsis/inc/cmsis_gcc.h \
+ ../../lib/cmsis/inc/mpu_armv7.h chip/system_SWM320.h chip/SWM320_port.h \
+ chip/SWM320_gpio.h chip/SWM320_exti.h chip/SWM320_timr.h \
+ chip/SWM320_uart.h chip/SWM320_spi.h chip/SWM320_i2c.h chip/SWM320_pwm.h \
+ chip/SWM320_adc.h chip/SWM320_dma.h chip/SWM320_lcd.h chip/SWM320_can.h \
+ chip/SWM320_sdio.h chip/SWM320_flash.h chip/SWM320_norflash.h \
+ chip/SWM320_sdram.h chip/SWM320_crc.h chip/SWM320_rtc.h \
+ chip/SWM320_wdt.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/alloca.h \
+ ../../py/misc.h \
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdbool.h \
+ ../../py/qstr.h build-SWM320Lite/genhdr/qstrdefs.generated.h \
+ ../../py/mpprint.h ../../py/runtime0.h ../../py/stream.h \
+ ../../py/mperrno.h ../../py/mphal.h mphalport.h ../../extmod/virtpin.h
+ ../../lib/utils/sys_stdio_mphal.c :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/stdio.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_ansi.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/newlib.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_newlib_version.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/config.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/ieeefp.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/features.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/cdefs.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_default_types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stddef.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdarg.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/reent.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/_ansi.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/lock.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_stdint.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/endian.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/_endian.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/select.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_sigset.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_timeval.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/timespec.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_timespec.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_pthreadtypes.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/machine/types.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/stdio.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/string.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/xlocale.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/string.h :
+ ../../py/obj.h ../../py/mpconfig.h mpconfigport.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdint.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/stdint.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/sys/_intsup.h :
+ boards/SWM320Lite/mpconfigboard.h chip/SWM320.h :
+ ../../lib/cmsis/inc/core_cm4.h ../../lib/cmsis/inc/cmsis_version.h :
+ ../../lib/cmsis/inc/cmsis_compiler.h ../../lib/cmsis/inc/cmsis_gcc.h :
+ ../../lib/cmsis/inc/mpu_armv7.h chip/system_SWM320.h chip/SWM320_port.h :
+ chip/SWM320_gpio.h chip/SWM320_exti.h chip/SWM320_timr.h :
+ chip/SWM320_uart.h chip/SWM320_spi.h chip/SWM320_i2c.h chip/SWM320_pwm.h :
+ chip/SWM320_adc.h chip/SWM320_dma.h chip/SWM320_lcd.h chip/SWM320_can.h :
+ chip/SWM320_sdio.h chip/SWM320_flash.h chip/SWM320_norflash.h :
+ chip/SWM320_sdram.h chip/SWM320_crc.h chip/SWM320_rtc.h :
+ chip/SWM320_wdt.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include/alloca.h :
+ ../../py/misc.h :
+ /mnt/d/Program/Ubuntu/gcc-arm-none-eabi-6-2017-q2-update/lib/gcc/arm-none-eabi/6.3.1/include/stdbool.h :
+ ../../py/qstr.h build-SWM320Lite/genhdr/qstrdefs.generated.h :
+ ../../py/mpprint.h ../../py/runtime0.h ../../py/stream.h :
+ ../../py/mperrno.h ../../py/mphal.h mphalport.h ../../extmod/virtpin.h :
