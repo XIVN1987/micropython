@@ -1,4 +1,4 @@
-MicroPython port to MT7687 WiFi SoC
+MicroPython port to MediaTek MT7687 (Cortex-M4 WiFi SoC)
 ===================================
 
 
