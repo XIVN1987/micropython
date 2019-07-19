@@ -1,4 +1,4 @@
-MicroPython port to SWM320 (Cortex-M4 MCU)
+MicroPython port to Synwit SWM320 (Cortex-M4 MCU)
 ==========================================
 
 ## Pin
