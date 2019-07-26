@@ -537,6 +537,7 @@ $(BUILD)/firmware.hex: $(BUILD)/firmware.elf
 $(BUILD)/firmware.elf: $(OBJ)
 	$(ECHO) "LINK $@"
 	$(Q)$(LD) $(LDFLAGS) -o $@ $^ $(LDFLAGS_MOD) $(LIBS)
+	$(CROSS_COMPILE)objdump -d $@ > $@.dis
 	$(Q)$(SIZE) $@
 ifneq ($(TEXT0_ADDR),0x08000000)
 	$(ECHO) "INFO: this build requires mboot to be installed first"

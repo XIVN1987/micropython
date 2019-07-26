@@ -280,6 +280,7 @@ lib/stm32lib/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_tim.c
 lib/stm32lib/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usart.c
 lib/stm32lib/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
 lib/stm32lib/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_utils.c
+lib/stm32lib/CMSIS/STM32F4xx/Source/Templates/gcc/startup_stm32f405xx.s
 lib/timeutils/timeutils.c
 lib/timeutils/timeutils.h
 lib/utils/interrupt_char.c
