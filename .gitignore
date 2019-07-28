@@ -9,6 +9,7 @@
 *.hex
 *.dis
 *.exe
+*.qstr
 
 # Packages
 ############
