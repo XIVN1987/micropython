@@ -85,4 +85,3 @@
 
 // USB config
 #define MICROPY_HW_USB_FS       	(1)
-#define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_C13)

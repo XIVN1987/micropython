@@ -30,17 +30,41 @@
 // board specific definitions
 #include "mpconfigboard.h"
 
-// options to control how MicroPython is built
+// Options to control how MicroPython is built for this port,
+// overriding defaults in py/mpconfig.h.
 
+/* memory allocation policies */
+
+// Maximum length of a path in the filesystem
+// So we can allocate a buffer on the stack for path manipulation in import
 #define MICROPY_ALLOC_PATH_MAX                      (128)
+
+/* emitters */
+
 #define MICROPY_PERSISTENT_CODE_LOAD                (1)
-#define MICROPY_EMIT_THUMB                          (0)
-#define MICROPY_EMIT_INLINE_THUMB                   (0)
+#define MICROPY_EMIT_THUMB                          (1)
+#define MICROPY_EMIT_INLINE_THUMB                   (1)
+
+/* compiler configuration */
+// Whether to enable lookup of constants in modules; eg module.CONST
 #define MICROPY_COMP_MODULE_CONST                   (1)
+
+// Whether to enable optimisation of: a, b, c = d, e, f
+// Requires MICROPY_COMP_DOUBLE_TUPLE_ASSIGN and costs 68 bytes (Thumb2)
+#define MICROPY_COMP_TRIPLE_TUPLE_ASSIGN            (0)
+
+/* optimisations */
+#define MICROPY_OPT_COMPUTED_GOTO                   (0)
+#define MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE    (0)
+
+/* Python internal features */
+#define MICROPY_READER_VFS                          (1)
 #define MICROPY_ENABLE_GC                           (1)
 #define MICROPY_ENABLE_FINALISER                    (1)
-#define MICROPY_COMP_TRIPLE_TUPLE_ASSIGN            (0)
-#define MICROPY_STACK_CHECK                         (0)
+#define MICROPY_STACK_CHECK                         (1)
+#define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF      (1)
+#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE        (0)
+#define MICROPY_KBD_EXCEPTION                       (1)
 #define MICROPY_HELPER_REPL                         (1)
 #define MICROPY_ENABLE_SOURCE_LINE                  (1)
 #define MICROPY_ENABLE_DOC_STRING                   (0)
@@ -48,11 +72,82 @@
 #define MICROPY_ERROR_REPORTING                     (MICROPY_ERROR_REPORTING_TERSE)
 #define MICROPY_LONGINT_IMPL                        (MICROPY_LONGINT_IMPL_MPZ)
 #define MICROPY_FLOAT_IMPL                          (MICROPY_FLOAT_IMPL_NONE)
-#define MICROPY_OPT_COMPUTED_GOTO                   (0)
-#define MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE    (0)
-#define MICROPY_READER_VFS                          (1)
 #define MICROPY_CPYTHON_COMPAT                      (1)
 #define MICROPY_QSTR_BYTES_IN_HASH                  (1)
+
+#define MICROPY_STREAMS_NON_BLOCK                   (1)
+#define MICROPY_MODULE_WEAK_LINKS                   (1)
+#define MICROPY_CAN_OVERRIDE_BUILTINS               (1)
+#define MICROPY_USE_INTERNAL_ERRNO                  (1)
+#define MICROPY_VFS                                 (1)
+#define MICROPY_VFS_FAT                             (1)
+
+/* control over Python builtins */
+
+// Whether to support the descriptors __get__, __set__, __delete__
+#define MICROPY_PY_DESCRIPTORS                      (1)
+
+// Whether to support class __delattr__ and __setattr__ methods
+#define MICROPY_PY_DELATTR_SETATTR                  (1)
+
+#define MICROPY_PY_BUILTINS_STR_UNICODE             (1)
+#define MICROPY_PY_BUILTINS_STR_PARTITION           (1)
+#define MICROPY_PY_BUILTINS_STR_SPLITLINES          (1)
+
+#define MICROPY_PY_BUILTINS_MEMORYVIEW              (1)
+
+#define MICROPY_PY_BUILTINS_FROZENSET               (1)
+
+// Whether to support complete set of special methods for user
+// classes, or only the most used ones
+#define MICROPY_PY_ALL_SPECIAL_METHODS              (1)
+
+#define MICROPY_PY_BUILTINS_COMPILE                 (1)
+
+#define MICROPY_PY_BUILTINS_EXECFILE                (1)
+
+// Whether to define "NotImplemented" special constant
+#define MICROPY_PY_BUILTINS_NOTIMPLEMENTED          (1)
+
+#define MICROPY_PY_BUILTINS_INPUT                   (1)
+
+#define MICROPY_PY_BUILTINS_HELP                    (1)
+#define MICROPY_PY_BUILTINS_HELP_TEXT				mp_help_default_text
+// Add the ability to list the available modules when executing help('modules')
+#define MICROPY_PY_BUILTINS_HELP_MODULES            (1)
+
+// Whether to provide mem-info related functions in micropython module
+#define MICROPY_PY_MICROPYTHON_MEM_INFO             (1)
+
+// Whether to support slice assignments for array (and bytearray).
+#define MICROPY_PY_ARRAY_SLICE_ASSIGN               (1)
+
+#define MICROPY_PY_COLLECTIONS_DEQUE                (1)
+#define MICROPY_PY_COLLECTIONS_ORDEREDDICT          (1)
+
+#define MICROPY_PY_IO                               (1)
+#define MICROPY_PY_IO_IOBASE                        (1)
+#define MICROPY_PY_IO_FILEIO                        (1)
+
+#define MICROPY_PY_SYS_MAXSIZE                      (1)
+#define MICROPY_PY_SYS_EXIT                         (1)
+#define MICROPY_PY_SYS_STDFILES                     (1)
+
+#define MICROPY_PY_UERRNO                           (1)
+
+#define MICROPY_PY_THREAD                           (0)
+
+/* extended modules */
+#define MICROPY_PY_UCTYPES                          (1)
+#define MICROPY_PY_UZLIB                            (1)
+#define MICROPY_PY_UJSON                            (1)
+#define MICROPY_PY_URE                              (1)
+#define MICROPY_PY_UHEAPQ                           (1)
+#define MICROPY_PY_UHASHLIB                         (1)
+#define MICROPY_PY_UBINASCII                        (1)
+#define MICROPY_PY_URANDOM                          (1)
+#define MICROPY_PY_USELECT                          (1)
+#define MICROPY_PY_UTIME_MP_HAL                     (1)
 
 // fatfs configuration used in ffconf.h
 #define MICROPY_FATFS_ENABLE_LFN                    (2)
@@ -63,57 +158,6 @@
 #define MICROPY_FATFS_REENTRANT                     (1)
 #define MICROPY_FATFS_SYNC_T                        SemaphoreHandle_t
 */
-
-#define MICROPY_STREAMS_NON_BLOCK                   (1)
-#define MICROPY_MODULE_WEAK_LINKS                   (1)
-#define MICROPY_CAN_OVERRIDE_BUILTINS               (1)
-#define MICROPY_USE_INTERNAL_ERRNO                  (1)
-#define MICROPY_VFS                                 (1)
-#define MICROPY_VFS_FAT                             (1)
-#define MICROPY_PY_ASYNC_AWAIT                      (0)
-#define MICROPY_PY_ALL_SPECIAL_METHODS              (1)
-#define MICROPY_PY_BUILTINS_INPUT                   (1)
-#define MICROPY_PY_BUILTINS_HELP                    (1)
-#define MICROPY_PY_BUILTINS_HELP_TEXT				mp_help_default_text
-#define MICROPY_PY_BUILTINS_STR_UNICODE             (1)
-#define MICROPY_PY_BUILTINS_STR_SPLITLINES          (1)
-#define MICROPY_PY_BUILTINS_MEMORYVIEW              (1)
-#define MICROPY_PY_BUILTINS_FROZENSET               (1)
-#define MICROPY_PY_BUILTINS_EXECFILE                (1)
-#define MICROPY_PY_ARRAY_SLICE_ASSIGN               (1)
-#define MICROPY_PY_COLLECTIONS_ORDEREDDICT          (1)
-#define MICROPY_PY_MICROPYTHON_MEM_INFO             (0)
-#define MICROPY_PY_SYS_MAXSIZE                      (1)
-#define MICROPY_PY_SYS_EXIT                         (1)
-#define MICROPY_PY_SYS_STDFILES                     (1)
-#define MICROPY_PY_CMATH                            (0)
-#define MICROPY_PY_IO                               (1)
-#define MICROPY_PY_IO_FILEIO                        (1)
-#define MICROPY_PY_UERRNO                           (1)
-#define MICROPY_PY_UERRNO_ERRORCODE                 (0)
-#define MICROPY_PY_THREAD                           (0)
-#define MICROPY_PY_THREAD_GIL                       (0)
-#define MICROPY_PY_UBINASCII                        (1)
-#define MICROPY_PY_UCTYPES                          (0)
-#define MICROPY_PY_UZLIB                            (0)
-#define MICROPY_PY_UJSON                            (1)
-#define MICROPY_PY_URE                              (1)
-#define MICROPY_PY_UHEAPQ                           (0)
-#define MICROPY_PY_UHASHLIB                         (0)
-#define MICROPY_PY_USELECT                          (1)
-#define MICROPY_PY_UTIME_MP_HAL                     (1)
-
-#define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF      (1)
-#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE        (0)
-#define MICROPY_KBD_EXCEPTION                       (1)
-
-// We define our own list of errno constants to include in uerrno module
-#define MICROPY_PY_UERRNO_LIST \
-    X(EPERM) \
-    X(EIO) \
-    X(ENODEV) \
-    X(EINVAL) \
-    X(ETIMEDOUT) \
 
 // TODO these should be generic, not bound to fatfs
 #define mp_type_fileio mp_type_vfs_fat_fileio

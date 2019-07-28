@@ -20,12 +20,19 @@ include $(TOP)/py/py.mk
 CROSS_COMPILE ?= arm-none-eabi-
 
 
-CFLAGS  = -mthumb -march=armv7e-m -mcpu=cortex-m4 -mabi=aapcs -msoft-float -mfloat-abi=soft -fsingle-precision-constant -Wdouble-promotion
-CFLAGS += -Wall -Wpointer-arith -std=gnu99 -nostdlib -O0
-CFLAGS += -g -ffunction-sections -fdata-sections -fno-common -fsigned-char -mno-unaligned-access
+CFLAGS  = -mthumb -mcpu=cortex-m4 -mfloat-abi=soft -fsingle-precision-constant -Wdouble-promotion
+CFLAGS += -Wall -Wpointer-arith -std=gnu99 -nostdlib
+CFLAGS += -ffunction-sections -fdata-sections -fno-common -fsigned-char -mno-unaligned-access
 CFLAGS += $(CFLAGS_MOD)
 
-LDFLAGS = -Wl,-nostdlib -Wl,--gc-sections -Wl,-Map=$@.map -T m480.ld
+DEBUG = 1
+ifeq ($(DEBUG),1)
+CFLAGS += -O0 -g
+else
+CFLAGS += -O2
+endif
+
+LDFLAGS = -Wl,-nostdlib -Wl,--gc-sections -Wl,-Map=$@.map -T m480.ld -mthumb -mcpu=cortex-m4 -mfloat-abi=soft
 
 
 INC =  -I.

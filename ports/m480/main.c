@@ -94,6 +94,7 @@ static void Task_MicroPy(void *argv)
 
 soft_reset:
     mp_stack_set_top((void*)sp);
+    mp_stack_set_limit(sizeof(Task_MicroPy_Stk) - 1024);
 
     gc_init(&__HeapBase, &__HeapLimit);
 

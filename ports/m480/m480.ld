@@ -6,7 +6,7 @@ ENTRY(Reset_Handler)
 MEMORY
 {
 	ROM(arx) : ORIGIN = 0x00000000, LENGTH = 0x00080000 /* 512k */
-	RAM(arw) : ORIGIN = 0x20000000, LENGTH = 0x00020000 /* 120k */
+	RAM(arw) : ORIGIN = 0x20000000, LENGTH = 0x00020000 /* 128k */
 }
 
 

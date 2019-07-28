@@ -437,6 +437,9 @@ void stm32_main(uint32_t reset_mode) {
     __HAL_RCC_GPIOD_CLK_ENABLE();
     #endif
 
+    mp_hal_pin_output(pin_C13);
+    MICROPY_HW_LED_ON(pin_C13);
+
     #if defined(STM32F4) ||  defined(STM32F7)
         #if defined(__HAL_RCC_DTCMRAMEN_CLK_ENABLE)
         // The STM32F746 doesn't really have CCM memory, but it does have DTCM,
