@@ -54,8 +54,8 @@ CFLAGS += $(INC)
 
 MAIN_SRC_C = \
 	main.c \
+    misc.c \
 	mphalport.c \
-	fatfs_port.c \
 
 MODS_SRC_C = $(addprefix mods/,\
 	moduos.c \
@@ -70,6 +70,11 @@ MODS_SRC_C = $(addprefix mods/,\
 	pybadc.c \
 	pybdac.c \
     pybpwm.c \
+    pybrtc.c \
+    pybrng.c \
+    pybusb.c \
+    pybusb_desc.c \
+    pybusb_vcom.c \
 )
 
 MISC_SRC_C = $(addprefix misc/,\

@@ -125,22 +125,25 @@ STATIC void pyb_timer_print(const mp_print_t *print, mp_obj_t self_in, mp_print_
     }
 }
 
-STATIC const mp_arg_t pyb_timer_init_args[] = {
-    { MP_QSTR_id,         MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_period,     MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 120000} },
-    { MP_QSTR_mode,       MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = TIMR_MODE_TIMER} },
-    { MP_QSTR_edge,       MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = TIMR_EDGE_FALLING} },
-    { MP_QSTR_trigger,    MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = TIMER_TRG_TO_NONE} },
-    { MP_QSTR_irq,        MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = TIMR_IRQ_TIMEOUT} },
-    { MP_QSTR_callback,   MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_priority,   MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 7} }
-};
+
 STATIC mp_obj_t pyb_timer_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    enum { ARG_id, ARG_period, ARG_mode, ARG_edge, ARG_trigger, ARG_irq, ARG_callback, ARG_priority };
+    STATIC const mp_arg_t allowed_args[] = {
+        { MP_QSTR_id,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_period,   MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 120000} },
+        { MP_QSTR_mode,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = TIMR_MODE_TIMER} },
+        { MP_QSTR_edge,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = TIMR_EDGE_FALLING} },
+        { MP_QSTR_trigger,  MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = TIMER_TRG_TO_NONE} },
+        { MP_QSTR_irq,      MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = TIMR_IRQ_TIMEOUT} },
+        { MP_QSTR_callback, MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_priority, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 7} }
+    };
+
     // parse args
     mp_map_t kw_args;
     mp_map_init_fixed_table(&kw_args, n_kw, all_args + n_args);
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_timer_init_args)];
-    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(pyb_timer_init_args), pyb_timer_init_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     uint timer_id = args[0].u_int;
     if(timer_id >= PYB_NUM_TIMERS)
@@ -151,41 +154,41 @@ STATIC mp_obj_t pyb_timer_make_new(const mp_obj_type_t *type, size_t n_args, siz
     pyb_timer_obj_t *self = &pyb_timer_obj[timer_id];
     self->base.type = &pyb_timer_type;
 
-    self->period = args[1].u_int;
+    self->period = args[ARG_period].u_int;
     if(self->period > 0xFFFFFF)
     {
         goto invalid_args;
     }
 
-    self->mode = args[2].u_int;
+    self->mode = args[ARG_mode].u_int;
     if((self->mode != TIMR_MODE_TIMER) && (self->mode != TIMR_MODE_COUNTER) && (self->mode != TIMR_MODE_CAPTURE))
     {
         goto invalid_args;
     }
 
-    self->edge = args[3].u_int;
+    self->edge = args[ARG_edge].u_int;
     if(((self->mode == TIMR_MODE_COUNTER) && (self->edge > TIMR_EDGE_RISING)) ||
        ((self->mode == TIMR_MODE_CAPTURE) && (self->edge > TIMR_EDGE_BOTH)))
     {
         goto invalid_args;
     }
 
-    self->trigger = args[4].u_int;
+    self->trigger = args[ARG_trigger].u_int;
     if((self->trigger != TIMER_TRG_TO_EADC) && (self->trigger != TIMER_TRG_TO_DAC) && (self->trigger != TIMER_TRG_TO_EPWM) &&
        (self->trigger != TIMER_TRG_TO_PDMA) && (self->trigger != TIMER_TRG_TO_NONE))
     {
         goto invalid_args;
     }
 
-    self->irq_trigger = args[5].u_int;
+    self->irq_trigger = args[ARG_irq].u_int;
     if((self->irq_trigger != TIMR_IRQ_TIMEOUT) && (self->irq_trigger != TIMR_IRQ_CAPTURE) && (self->irq_trigger != TIMR_IRQ_NONE))
     {
         goto invalid_args;
     }
 
-    self->irq_callback = args[6].u_obj;
+    self->irq_callback = args[ARG_callback].u_obj;
 
-    self->irq_priority = args[7].u_int;
+    self->irq_priority = args[ARG_priority].u_int;
     if(self->irq_priority > 15)
     {
         goto invalid_args;
@@ -258,6 +261,7 @@ invalid_args:
     mp_raise_ValueError("invalid argument(s) value");
 }
 
+
 STATIC mp_obj_t pyb_timer_period(size_t n_args, const mp_obj_t *args) {
     pyb_timer_obj_t *self = args[0];
     if (n_args == 1) {  // get
@@ -271,12 +275,14 @@ STATIC mp_obj_t pyb_timer_period(size_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_timer_period_obj, 1, 2, pyb_timer_period);
 
+
 STATIC mp_obj_t pyb_timer_value(mp_obj_t self_in) {
     pyb_timer_obj_t *self = self_in;
 
     return MP_OBJ_SMALL_INT_VALUE(TIMER_GetCounter(self->TIMRx));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_timer_value_obj, pyb_timer_value);
+
 
 STATIC mp_obj_t pyb_timer_start(mp_obj_t self_in) {
     pyb_timer_obj_t *self = self_in;
@@ -287,6 +293,7 @@ STATIC mp_obj_t pyb_timer_start(mp_obj_t self_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_timer_start_obj, pyb_timer_start);
 
+
 STATIC mp_obj_t pyb_timer_stop(mp_obj_t self_in) {
     pyb_timer_obj_t *self = self_in;
 
@@ -296,12 +303,14 @@ STATIC mp_obj_t pyb_timer_stop(mp_obj_t self_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_timer_stop_obj, pyb_timer_stop);
 
+
 STATIC mp_obj_t pyb_timer_irq_flags(mp_obj_t self_in) {
     pyb_timer_obj_t *self = self_in;
 
     return MP_OBJ_SMALL_INT_VALUE(self->irq_flags);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_timer_irq_flags_obj, pyb_timer_irq_flags);
+
 
 STATIC mp_obj_t pyb_timer_irq_enable(mp_obj_t self_in, mp_obj_t irq_trigger) {
     pyb_timer_obj_t *self = self_in;
@@ -333,6 +342,7 @@ STATIC mp_obj_t pyb_timer_irq_enable(mp_obj_t self_in, mp_obj_t irq_trigger) {
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_timer_irq_enable_obj, pyb_timer_irq_enable);
+
 
 STATIC mp_obj_t pyb_timer_irq_disable(mp_obj_t self_in, mp_obj_t irq_trigger) {
     pyb_timer_obj_t *self = self_in;

@@ -123,17 +123,18 @@ STATIC void pyb_pwm_print(const mp_print_t *print, mp_obj_t self_in, mp_print_ki
 }
 
 
-STATIC const mp_arg_t pyb_pwm_init_args[] = {
-    { MP_QSTR_id,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_clkdiv,   MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 192} },
-    { MP_QSTR_period,   MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 1000} },
-};
 STATIC mp_obj_t pyb_pwm_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    STATIC const mp_arg_t allowed_args[] = {
+        { MP_QSTR_id,     MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_clkdiv, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 192} },
+        { MP_QSTR_period, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 1000} },
+    };
+
     // parse args
     mp_map_t kw_args;
     mp_map_init_fixed_table(&kw_args, n_kw, all_args + n_args);
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_pwm_init_args)];
-    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(args), pyb_pwm_init_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     uint pwm_id = args[0].u_int;
     if(pwm_id >= PYB_NUM_PWMS) {
@@ -210,22 +211,25 @@ invalid_args:
     mp_raise_ValueError("invalid argument(s) value");
 }
 
-STATIC const mp_arg_t pyb_pwm_chn_config_args[] = {
-    { MP_QSTR_chn,           MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_duty,          MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 500} },
-    { MP_QSTR_period,        MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 1000} },
-    { MP_QSTR_complementary, MP_ARG_KW_ONLY  | MP_ARG_BOOL,{.u_bool=false} },
-    { MP_QSTR_deadzone,      MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_pin,           MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_pinN,          MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-};
+
 STATIC mp_obj_t pyb_pwm_chn_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_chn, ARG_duty, ARG_period, ARG_complementary, ARG_deadzone, ARG_pin, ARG_pinN };
+    STATIC const mp_arg_t allowed_args[] = {
+        { MP_QSTR_chn,           MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_duty,          MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 500} },
+        { MP_QSTR_period,        MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 1000} },
+        { MP_QSTR_complementary, MP_ARG_KW_ONLY  | MP_ARG_BOOL,{.u_bool=false} },
+        { MP_QSTR_deadzone,      MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_pin,           MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_pinN,          MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+    };
+
     // parse args
     pyb_pwm_obj_t *self = pos_args[0];
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_pwm_chn_config_args)];
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(pyb_pwm_chn_config_args), pyb_pwm_chn_config_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    uint chn = args[0].u_int;
+    uint chn = args[ARG_chn].u_int;
     if(chn > PYB_NUM_CHANNELS)
     {
         goto invalid_args;
@@ -233,39 +237,39 @@ STATIC mp_obj_t pyb_pwm_chn_config(size_t n_args, const mp_obj_t *pos_args, mp_m
 
     if(self->pwm_id < PYB_EPWM_0)
     {
-        self->duty[chn] = args[1].u_int;
+        self->duty[chn] = args[ARG_duty].u_int;
         BPWM_SET_CMR(self->BPWMx, chn, self->duty[chn]);
 
         BPWM_EnableOutput(self->BPWMx, 1 << chn);
 
-        if(args[5].u_obj != mp_const_none)
+        if(args[ARG_pin].u_obj != mp_const_none)
         {
             if(self->pwm_id == PYB_BPWM_0)
-                pin_config_by_func(args[5].u_obj, "%s_BPWM0_CH%u", chn);
+                pin_config_by_func(args[ARG_pin].u_obj, "%s_BPWM0_CH%u", chn);
             else
-                pin_config_by_func(args[5].u_obj, "%s_BPWM1_CH%u", chn);
+                pin_config_by_func(args[ARG_pin].u_obj, "%s_BPWM1_CH%u", chn);
         }
     }
     else
     {
-        self->Eperiod[chn] = args[2].u_int;
+        self->Eperiod[chn] = args[ARG_period].u_int;
         EPWM_SET_CNR(self->EPWMx, chn, self->Eperiod[chn]);
 
-        self->duty[chn] = args[1].u_int;
+        self->duty[chn] = args[ARG_duty].u_int;
         EPWM_SET_CMR(self->EPWMx, chn, self->duty[chn]);
 
         EPWM_EnableOutput(self->EPWMx, (1 << chn));
 
-        if(args[5].u_obj != mp_const_none)
+        if(args[ARG_pin].u_obj != mp_const_none)
         {
             if(self->pwm_id == PYB_EPWM_0)
-                pin_config_by_func(args[5].u_obj, "%s_EPWM0_CH%u", chn);
+                pin_config_by_func(args[ARG_pin].u_obj, "%s_EPWM0_CH%u", chn);
             else
-                pin_config_by_func(args[5].u_obj, "%s_EPWM1_CH%u", chn);
+                pin_config_by_func(args[ARG_pin].u_obj, "%s_EPWM1_CH%u", chn);
         }
 
-        self->complementary[chn] = args[3].u_bool;
-        self->deadzone[chn] = args[4].u_int;
+        self->complementary[chn] = args[ARG_complementary].u_bool;
+        self->deadzone[chn] = args[ARG_deadzone].u_int;
 
         if(self->complementary[chn])
         {
@@ -282,12 +286,12 @@ STATIC mp_obj_t pyb_pwm_chn_config(size_t n_args, const mp_obj_t *pos_args, mp_m
             EPWM_SET_DEADZONE_CLK_SRC(self->EPWMx, chn, true);
             EPWM_EnableDeadZone(self->EPWMx, chn, self->deadzone[chn]);
 
-            if(args[6].u_obj != mp_const_none)
+            if(args[ARG_pinN].u_obj != mp_const_none)
             {
                 if(self->pwm_id == PYB_EPWM_0)
-                    pin_config_by_func(args[6].u_obj, "%s_EPWM0_CH%u", chn+1);
+                    pin_config_by_func(args[ARG_pinN].u_obj, "%s_EPWM0_CH%u", chn+1);
                 else
-                    pin_config_by_func(args[6].u_obj, "%s_EPWM1_CH%u", chn+1);
+                    pin_config_by_func(args[ARG_pinN].u_obj, "%s_EPWM1_CH%u", chn+1);
             }
         }
     }

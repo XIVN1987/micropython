@@ -51,8 +51,10 @@
 
 #include "chip/M480.h"
 
+#include "mods/pybrtc.h"
 #include "mods/pybuart.h"
 #include "mods/pybflash.h"
+#include "mods/pybusb_vcom.h"
 
 #include "misc/gccollect.h"
 
@@ -67,9 +69,10 @@ static const char fresh_boot_py[] = "# boot.py -- run on boot-up\r\n"
                                     ;
 
 
-static void systemInit(void);
-static void Task_MicroPy(void *argv);
-static void init_sflash_filesystem(void);
+void systemInit(void);
+void USB_Config(void);
+void Task_MicroPy(void *argv);
+void init_sflash_filesystem(void);
 
 
 #define TAKS_MICROPY_PRIORITY   10
@@ -81,6 +84,8 @@ int main(void)
 {
     systemInit();
 
+    USB_Config();
+
     xTaskCreateStatic(Task_MicroPy, "MicroPy", TASK_MICROPY_STK_DEPTH, NULL,
                       TAKS_MICROPY_PRIORITY, Task_MicroPy_Stk, &Task_MicroPy_TCB);
 
@@ -88,7 +93,7 @@ int main(void)
 }
 
 
-static void Task_MicroPy(void *argv)
+void Task_MicroPy(void *argv)
 {
     uint sp = __get_PSP();
 
@@ -104,6 +109,7 @@ soft_reset:
     mp_obj_list_init(mp_sys_argv, 0);
     mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR_)); // current dir (or base dir of the script)
 
+    rtc_init();
     uart_init0();
     readline_init0();
 
@@ -155,7 +161,7 @@ soft_reset_exit:
 }
 
 
-static void init_sflash_filesystem(void)
+void init_sflash_filesystem(void)
 {
     static fs_user_mount_t vfs_fat;
     FILINFO fno;
@@ -230,7 +236,7 @@ fail:
 }
 
 
-static void systemInit(void)
+void systemInit(void)
 {
     SYS_UnlockReg();
 
@@ -255,35 +261,27 @@ static void systemInit(void)
 }
 
 
-// This is the static memory (TCB and stack) for the idle task
-static StaticTask_t TaskIdleTCB;
-static StackType_t  TaskIdleStack[configMINIMAL_STACK_SIZE];
+void USB_Config(void)
+{
+    SYS_UnlockReg();
 
-// We need this when configSUPPORT_STATIC_ALLOCATION is enabled
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
-                                       StackType_t **ppxIdleTaskStackBuffer,
-                                       uint32_t *pulIdleTaskStackSize ) {
-    *ppxIdleTaskTCBBuffer = &TaskIdleTCB;
-    *ppxIdleTaskStackBuffer = TaskIdleStack;
-    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+    SYS->GPA_MFPH &= ~(SYS_GPA_MFPH_PA12MFP_Msk      | SYS_GPA_MFPH_PA13MFP_Msk     | SYS_GPA_MFPH_PA14MFP_Msk     | SYS_GPA_MFPH_PA15MFP_Msk);
+    SYS->GPA_MFPH |=  (SYS_GPA_MFPH_PA12MFP_USB_VBUS | SYS_GPA_MFPH_PA13MFP_USB_D_N | SYS_GPA_MFPH_PA14MFP_USB_D_P | SYS_GPA_MFPH_PA15MFP_USB_OTG_ID);
+
+    SYS->USBPHY = (SYS->USBPHY & ~SYS_USBPHY_USBROLE_Msk) | SYS_USBPHY_USBEN_Msk | SYS_USBPHY_SBO_Msk;
+
+    CLK->CLKDIV0 = (CLK->CLKDIV0 & ~CLK_CLKDIV0_USBDIV_Msk) | CLK_CLKDIV0_USB(4);
+    CLK_EnableModuleClock(USBD_MODULE);
+
+    SYS_LockReg();
+
+
+    USBD_Open(&gsInfo, VCOM_ClassRequest, NULL);
+
+    VCOM_Init();	// Endpoint configuration
+
+    USBD_Start();
+
+    NVIC_EnableIRQ(USBD_IRQn);
 }
 
-
-void NORETURN __fatal_error(const char *msg) {
-   while(1) __NOP();
-}
-
-
-void __assert_func(const char *file, int line, const char *func, const char *expr) {
-    (void) func;
-    (void) file;
-    (void) line;
-    (void) expr;
-    //printf("Assertion failed: %s, file %s, line %d\n", expr, file, line);
-    __fatal_error(NULL);
-}
-
-
-void nlr_jump_fail(void *val) {
-    __fatal_error(NULL);
-}

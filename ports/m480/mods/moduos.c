@@ -38,10 +38,11 @@
 
 #include "genhdr/mpversion.h"
 
+#include "extmod/misc.h"
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
 
-#include "mods/moduos.h"
+#include "mods/pybusb.h"
 #include "mods/pybuart.h"
 
 /// \module os - basic "operating system" services
@@ -58,7 +59,6 @@
 /******************************************************************************
  DECLARE PRIVATE DATA
  ******************************************************************************/
-STATIC os_term_dup_obj_t os_term_dup_obj;
 
 
 /******************************************************************************/
@@ -105,30 +105,38 @@ STATIC mp_obj_t os_urandom(mp_obj_t num) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(os_urandom_obj, os_urandom);
 
-STATIC mp_obj_t os_dupterm(uint n_args, const mp_obj_t *args) {
-    if (n_args == 0) {
-        if (MP_STATE_PORT(os_term_dup_obj) == MP_OBJ_NULL) {
-            return mp_const_none;
-        } else {
-            return MP_STATE_PORT(os_term_dup_obj)->stream_o;
-        }
-    } else {
-        mp_obj_t stream_o = args[0];
-        if (stream_o == mp_const_none) {
-            MP_STATE_PORT(os_term_dup_obj) = MP_OBJ_NULL;
-        } else {
-             if (!MP_OBJ_IS_TYPE(stream_o, &pyb_uart_type)) {
-                 // must be a stream-like object providing at least read and write methods
-                 mp_load_method(stream_o, MP_QSTR_read, os_term_dup_obj.read);
-                 mp_load_method(stream_o, MP_QSTR_write, os_term_dup_obj.write);
-             }
-            os_term_dup_obj.stream_o = stream_o;
-            MP_STATE_PORT(os_term_dup_obj) = &os_term_dup_obj;
-        }
-        return mp_const_none;
-    }
+bool mp_uos_dupterm_is_builtin_stream(mp_const_obj_t stream) {
+    mp_obj_type_t *type = mp_obj_get_type(stream);
+    return type == &pyb_uart_type
+        #if MICROPY_HW_ENABLE_USB
+        || type == &pyb_usb_vcp_type
+        #endif
+        ;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(os_dupterm_obj, 0, 1, os_dupterm);
+
+STATIC mp_obj_t uos_dupterm(size_t n_args, const mp_obj_t *args) {
+    mp_obj_t prev_obj = mp_uos_dupterm_obj.fun.var(n_args, args);
+    if (mp_obj_get_type(prev_obj) == &pyb_uart_type) {
+        //uart_attach_to_repl(MP_OBJ_TO_PTR(prev_obj), false);
+    }
+    #if MICROPY_HW_ENABLE_USB
+    if (mp_obj_get_type(prev_obj) == &pyb_usb_vcp_type) {
+        //usb_vcp_attach_to_repl(MP_OBJ_TO_PTR(prev_obj), false);
+    }
+    #endif
+
+    if (mp_obj_get_type(args[0]) == &pyb_uart_type) {
+        //uart_attach_to_repl(MP_OBJ_TO_PTR(args[0]), true);
+    }
+    #if MICROPY_HW_ENABLE_USB
+    if (mp_obj_get_type(args[0]) == &pyb_usb_vcp_type) {
+        //usb_vcp_attach_to_repl(MP_OBJ_TO_PTR(args[0]), true);
+    }
+    #endif
+    return prev_obj;
+}
+MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(uos_dupterm_obj, 1, 2, uos_dupterm);
+
 
 STATIC const mp_rom_map_elem_t os_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__),        MP_ROM_QSTR(MP_QSTR_uos) },
@@ -155,7 +163,7 @@ STATIC const mp_rom_map_elem_t os_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_mount),           MP_ROM_PTR(&mp_vfs_mount_obj) },
     { MP_ROM_QSTR(MP_QSTR_umount),          MP_ROM_PTR(&mp_vfs_umount_obj) },
     { MP_ROM_QSTR(MP_QSTR_VfsFat),          MP_ROM_PTR(&mp_fat_vfs_type) },
-    { MP_ROM_QSTR(MP_QSTR_dupterm),         MP_ROM_PTR(&os_dupterm_obj) },
+    { MP_ROM_QSTR(MP_QSTR_dupterm),         MP_ROM_PTR(&uos_dupterm_obj) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(os_module_globals, os_module_globals_table);

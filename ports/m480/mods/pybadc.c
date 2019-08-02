@@ -79,23 +79,22 @@ STATIC void adc_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t
 }
 
 
-STATIC const mp_arg_t pyb_adc_init_args[] = {
-    { MP_QSTR_id,                          MP_ARG_INT, {.u_int = 0} },
-};
 STATIC mp_obj_t adc_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    STATIC const mp_arg_t allowed_args[] = {
+        { MP_QSTR_id, MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+    };
+
     // parse args
     mp_map_t kw_args;
     mp_map_init_fixed_table(&kw_args, n_kw, all_args + n_args);
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_adc_init_args)];
-    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(pyb_adc_init_args), pyb_adc_init_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    // check the peripheral id
-    uint32_t adc_id = args[0].u_int;
+    uint adc_id = args[0].u_int;
     if(adc_id >= PYB_NUM_ADCS) {
         mp_raise_OSError(MP_ENODEV);
     }
 
-    // setup the object
     pyb_adc_obj_t *self = &pyb_adc_obj[adc_id];
     self->base.type = &pyb_adc_type;
 
@@ -115,34 +114,35 @@ STATIC mp_obj_t adc_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
 }
 
 
-static const mp_arg_t pyb_adc_samp_config_args[] = {
-    { MP_QSTR_sample,             MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_channel,            MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_trigger,            MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = EADC_SOFTWARE_TRIGGER} },
-    { MP_QSTR_trigger_pin,        MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_extend_sample_time, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_trigger_delay_time, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
-};
-STATIC mp_obj_t pyb_adc_samp_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
-{
+STATIC mp_obj_t pyb_adc_samp_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_sample, ARG_channel, ARG_trigger, ARG_trigger_pin, ARG_extend_sample_time, ARG_trigger_delay_time };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_sample,             MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_channel,            MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_trigger,            MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = EADC_SOFTWARE_TRIGGER} },
+        { MP_QSTR_trigger_pin,        MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_extend_sample_time, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_trigger_delay_time, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
+    };
+
     // parse args
     pyb_adc_obj_t *self = pos_args[0];
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_adc_samp_config_args)];
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(pyb_adc_samp_config_args), pyb_adc_samp_config_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    uint sample = args[0].u_int;
+    uint sample = args[ARG_sample].u_int;
     if(sample >= PYB_NUM_SAMPLES)
     {
         goto invalid_args;
     }
 
-    uint channel = args[1].u_int;
+    uint channel = args[ARG_channel].u_int;
     if(channel >= PYB_NUM_CHANNELS)
     {
         goto invalid_args;
     }
 
-    uint trigger = args[2].u_int;
+    uint trigger = args[ARG_trigger].u_int;
     if((trigger != EADC_SOFTWARE_TRIGGER) && (trigger != EADC_FALLING_EDGE_TRIGGER) && (trigger != EADC_RISING_EDGE_TRIGGER) && (trigger != EADC_FALLING_RISING_EDGE_TRIGGER) &&
        (trigger != EADC_TIMER0_TRIGGER) && (trigger != EADC_TIMER1_TRIGGER) && (trigger != EADC_TIMER2_TRIGGER) && (trigger != EADC_TIMER3_TRIGGER) &&
        (trigger != EADC_PWM0TG0_TRIGGER) && (trigger != EADC_PWM0TG1_TRIGGER) && (trigger != EADC_PWM0TG2_TRIGGER) && (trigger != EADC_PWM0TG3_TRIGGER) && (trigger != EADC_PWM0TG4_TRIGGER) && (trigger != EADC_PWM0TG5_TRIGGER) &&
@@ -151,13 +151,13 @@ STATIC mp_obj_t pyb_adc_samp_config(size_t n_args, const mp_obj_t *pos_args, mp_
         goto invalid_args;
     }
 
-    uint extend_sample_time = args[4].u_int;
+    uint extend_sample_time = args[ARG_extend_sample_time].u_int;
     if(extend_sample_time > 0xFF)
     {
         goto invalid_args;
     }
 
-    uint trigger_delay_time = args[5].u_int;
+    uint trigger_delay_time = args[ARG_trigger_delay_time].u_int;
     if(trigger_delay_time > 0xFF*4)
     {
         goto invalid_args;
@@ -168,9 +168,9 @@ STATIC mp_obj_t pyb_adc_samp_config(size_t n_args, const mp_obj_t *pos_args, mp_
     snprintf(af_name, 16, "PB%u_EADC0_CH%u", channel, channel);
     pin_config_by_name(pin_name, af_name);
 
-    if(args[3].u_obj != mp_const_none)
+    if(args[ARG_trigger_pin].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[3].u_obj, "%s_EADC0_ST", 0);
+        pin_config_by_func(args[ARG_trigger_pin].u_obj, "%s_EADC0_ST", 0);
     }
 
     EADC_ConfigSampleModule(self->ADCx, sample, trigger, channel);
@@ -187,17 +187,11 @@ invalid_args:
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_adc_samp_config_obj, 2, pyb_adc_samp_config);
 
 
-static const mp_arg_t pyb_adc_start_args[] = {
-    { MP_QSTR_samples, MP_ARG_INT, {.u_int = 0x00} },
-};
-STATIC mp_obj_t pyb_adc_start(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    // parse args
-    pyb_adc_obj_t *self = pos_args[0];
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_adc_start_args)];
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(pyb_adc_start_args), pyb_adc_start_args, args);
+STATIC mp_obj_t pyb_adc_start(size_t n_args, const mp_obj_t *args) {
+    pyb_adc_obj_t *self = args[0];
 
-    uint samples = args[0].u_int;
-    if(samples == 0x00) samples = self->sw_samples;
+    uint samples = self->sw_samples;
+    if(n_args == 2) samples = mp_obj_get_int(args[1]);
 
     EADC_START_CONV(self->ADCx, samples);
 
@@ -214,16 +208,18 @@ STATIC mp_obj_t pyb_adc_busy(mp_obj_t self_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_adc_busy_obj, pyb_adc_busy);
 
 
-STATIC mp_obj_t pyb_adc_read(mp_obj_t self_in) {
-    pyb_adc_obj_t *self = self_in;
+STATIC mp_obj_t pyb_adc_read(size_t n_args, const mp_obj_t *args) {
+    pyb_adc_obj_t *self = args[0];
 
-    mp_obj_t datas[PYB_NUM_SAMPLES];
+    uint samples = 0xFFFF;
+    if(n_args == 2) samples = mp_obj_get_int(args[1]);
 
     uint n = 0;
+    mp_obj_t datas[PYB_NUM_SAMPLES];
     for(uint i = 0; i < PYB_NUM_SAMPLES; i++)
     {
         uint data = self->ADCx->DAT[i];
-        if(data & EADC_DAT0_VALID_Msk)
+        if((samples & (1 << i)) && (data & EADC_DAT0_VALID_Msk))
         {
             mp_obj_t item[2] = { MP_OBJ_NEW_SMALL_INT(i), MP_OBJ_NEW_SMALL_INT(data & EADC_DAT0_RESULT_Msk) };
 

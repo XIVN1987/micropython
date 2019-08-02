@@ -24,8 +24,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef MICROPY_INCLUDED_SWM320_MODS_PYBUART_H
-#define MICROPY_INCLUDED_SWM320_MODS_PYBUART_H
+#ifndef MICROPY_INCLUDED_M480_MODS_PYBUART_H
+#define MICROPY_INCLUDED_M480_MODS_PYBUART_H
 
 
 extern const mp_obj_type_t pyb_uart_type;
@@ -42,4 +42,4 @@ bool uart_tx_char(pyb_uart_obj_t *self, int c);
 bool uart_tx_strn(pyb_uart_obj_t *self, const char *str, uint len);
 
 
-#endif //MICROPY_INCLUDED_SWM320_MODS_PYBUART_H
+#endif //MICROPY_INCLUDED_M480_MODS_PYBUART_H

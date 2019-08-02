@@ -81,28 +81,30 @@ STATIC void pyb_dac_print(const mp_print_t *print, mp_obj_t self_in, mp_print_ki
     mp_printf(print, "DAC(%u)", self->dac_id);
 }
 
-STATIC const mp_arg_t pyb_dac_init_args[] = {
-    { MP_QSTR_id,          MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_trigger,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = DAC_WRITE_DAT_TRIGGER} },
-    { MP_QSTR_data,        MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-};
+
 STATIC mp_obj_t pyb_dac_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    enum { ARG_id, ARG_trigger, ARG_data };
+    STATIC const mp_arg_t allowed_args[] = {
+        { MP_QSTR_id,      MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_trigger, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = DAC_WRITE_DAT_TRIGGER} },
+        { MP_QSTR_data,    MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+    };
+
     // parse args
     mp_map_t kw_args;
     mp_map_init_fixed_table(&kw_args, n_kw, all_args + n_args);
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_dac_init_args)];
-    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(pyb_dac_init_args), pyb_dac_init_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     uint dac_id = args[0].u_int;
-    if(dac_id >= PYB_NUM_DACS)
-    {
+    if(dac_id >= PYB_NUM_DACS) {
         mp_raise_OSError(MP_ENODEV);
     }
 
     pyb_dac_obj_t *self = &pyb_dac_obj[dac_id];
     self->base.type = &pyb_dac_type;
 
-    self->trigger = args[1].u_int;
+    self->trigger = args[ARG_trigger].u_int;
     if((self->trigger != DAC_WRITE_DAT_TRIGGER) && (self->trigger != DAC_RISING_EDGE_TRIGGER) && (self->trigger != DAC_FALLING_EDGE_TRIGGER) &&
        (self->trigger != DAC_TIMER0_TRIGGER) && (self->trigger != DAC_TIMER1_TRIGGER) && (self->trigger != DAC_TIMER2_TRIGGER) && (DAC_TIMER3_TRIGGER))
     {
@@ -154,13 +156,13 @@ STATIC mp_obj_t pyb_dac_make_new(const mp_obj_type_t *type, size_t n_args, size_
             }
         }
 
-        if(args[2].u_obj == mp_const_none)
+        if(args[ARG_data].u_obj == mp_const_none)
         {
             goto invalid_args;
         }
 
         mp_buffer_info_t bufinfo;
-        mp_get_buffer_raise(args[2].u_obj, &bufinfo, MP_BUFFER_READ);
+        mp_get_buffer_raise(args[ARG_data].u_obj, &bufinfo, MP_BUFFER_READ);
 
         CLK_EnableModuleClock(PDMA_MODULE);
 
@@ -183,6 +185,7 @@ invalid_args:
     mp_raise_ValueError("invalid argument(s) value");
 }
 
+
 STATIC mp_obj_t pyb_dac_write(mp_obj_t self_in, mp_obj_t val) {
     pyb_dac_obj_t *self = self_in;
 
@@ -191,6 +194,7 @@ STATIC mp_obj_t pyb_dac_write(mp_obj_t self_in, mp_obj_t val) {
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_dac_write_obj, pyb_dac_write);
+
 
 STATIC mp_obj_t pyb_dac_dma_write(mp_obj_t self_in, mp_obj_t data) {
     pyb_dac_obj_t *self = self_in;
@@ -203,6 +207,7 @@ STATIC mp_obj_t pyb_dac_dma_write(mp_obj_t self_in, mp_obj_t data) {
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_dac_dma_write_obj, pyb_dac_dma_write);
+
 
 STATIC const mp_rom_map_elem_t pyb_dac_locals_dict_table[] = {
     // instance methods
@@ -219,6 +224,7 @@ STATIC const mp_rom_map_elem_t pyb_dac_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_TRIG_FALLING),    MP_ROM_INT(DAC_FALLING_EDGE_TRIGGER) },
 };
 STATIC MP_DEFINE_CONST_DICT(pyb_dac_locals_dict, pyb_dac_locals_dict_table);
+
 
 const mp_obj_type_t pyb_dac_type = {
     { &mp_type_type },

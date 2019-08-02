@@ -4,7 +4,6 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2013, 2014 Damien P. George
- * Copyright (c) 2015 Daniel Campora
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,20 +23,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef MICROPY_INCLUDED_M480_MODS_MODUOS_H
-#define MICROPY_INCLUDED_M480_MODS_MODUOS_H
-
-#include "py/obj.h"
-
-/******************************************************************************
- DEFINE PUBLIC TYPES
- ******************************************************************************/
-
-typedef struct _os_term_dup_obj_t {
-    mp_obj_t stream_o;
-    mp_obj_t read[3];
-    mp_obj_t write[3];
-} os_term_dup_obj_t;
+#ifndef MICROPY_INCLUDED_M480_PYBCAN_H
+#define MICROPY_INCLUDED_M480_PYBCAN_H
 
 
-#endif // MICROPY_INCLUDED_M480_MODS_MODUOS_H
+extern const mp_obj_type_t pyb_can_type;
+
+
+#endif //MICROPY_INCLUDED_M480_PYBCAN_H

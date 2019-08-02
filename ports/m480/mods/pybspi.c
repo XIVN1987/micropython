@@ -142,25 +142,27 @@ STATIC void pyb_spi_print(const mp_print_t *print, mp_obj_t self_in, mp_print_ki
 }
 
 
-static const mp_arg_t pyb_spi_init_args[] = {
-    { MP_QSTR_id,        MP_ARG_REQUIRED | MP_ARG_INT,  {.u_int = 0} },
-    { MP_QSTR_baudrate,  MP_ARG_REQUIRED | MP_ARG_INT,  {.u_int = 1000000} },    // 1MHz
-    { MP_QSTR_polarity,  MP_ARG_KW_ONLY  | MP_ARG_INT,  {.u_int = 0} },
-    { MP_QSTR_phase,     MP_ARG_KW_ONLY  | MP_ARG_INT,  {.u_int = 0} },
-    { MP_QSTR_slave,     MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool= false} },
-    { MP_QSTR_msbf,      MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool= true} },
-    { MP_QSTR_bits,      MP_ARG_KW_ONLY  | MP_ARG_INT,  {.u_int = 8} },
-    { MP_QSTR_mosi,      MP_ARG_KW_ONLY  | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
-    { MP_QSTR_miso,      MP_ARG_KW_ONLY  | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
-    { MP_QSTR_clk,       MP_ARG_KW_ONLY  | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
-    { MP_QSTR_cs,        MP_ARG_KW_ONLY  | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
-};
 STATIC mp_obj_t pyb_spi_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    enum { ARG_id, ARG_baudrate, ARG_polarity, ARG_phase, ARG_slave, ARG_msbf, ARG_bits, ARG_mosi, ARG_miso, ARG_clk, ARG_cs };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_id,        MP_ARG_REQUIRED | MP_ARG_INT,  {.u_int = 0} },
+        { MP_QSTR_baudrate,  MP_ARG_REQUIRED | MP_ARG_INT,  {.u_int = 1000000} },    // 1MHz
+        { MP_QSTR_polarity,  MP_ARG_KW_ONLY  | MP_ARG_INT,  {.u_int = 0} },
+        { MP_QSTR_phase,     MP_ARG_KW_ONLY  | MP_ARG_INT,  {.u_int = 0} },
+        { MP_QSTR_slave,     MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool= false} },
+        { MP_QSTR_msbf,      MP_ARG_KW_ONLY  | MP_ARG_BOOL, {.u_bool= true} },
+        { MP_QSTR_bits,      MP_ARG_KW_ONLY  | MP_ARG_INT,  {.u_int = 8} },
+        { MP_QSTR_mosi,      MP_ARG_KW_ONLY  | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
+        { MP_QSTR_miso,      MP_ARG_KW_ONLY  | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
+        { MP_QSTR_clk,       MP_ARG_KW_ONLY  | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
+        { MP_QSTR_cs,        MP_ARG_KW_ONLY  | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
+    };
+
     // parse args
     mp_map_t kw_args;
     mp_map_init_fixed_table(&kw_args, n_kw, all_args + n_args);
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_spi_init_args)];
-    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(pyb_spi_init_args), pyb_spi_init_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     // check the peripheral id
     uint spi_id = args[0].u_int;
@@ -171,48 +173,48 @@ STATIC mp_obj_t pyb_spi_make_new(const mp_obj_type_t *type, size_t n_args, size_
     pyb_spi_obj_t *self = &pyb_spi_obj[spi_id];
     self->base.type = &pyb_spi_type;
 
-    self->baudrate = args[1].u_int;
+    self->baudrate = args[ARG_baudrate].u_int;
 
-    self->polarity = args[2].u_int;
+    self->polarity = args[ARG_polarity].u_int;
     if((self->polarity != SPI_CPOL_0) && (self->polarity != SPI_CPOL_1))
     {
         goto invalid_args;
     }
 
-    self->phase    = args[3].u_int;
+    self->phase    = args[ARG_phase].u_int;
     if((self->phase != SPI_CPHA_0) && (self->phase != SPI_CPHA_1))
     {
         goto invalid_args;
     }
 
-    self->slave = args[4].u_bool;
+    self->slave = args[ARG_slave].u_bool;
 
-    self->msbf = args[5].u_bool;
+    self->msbf = args[ARG_msbf].u_bool;
 
-    self->bits = args[6].u_int;
+    self->bits = args[ARG_bits].u_int;
     if((self->bits < 4) || (self->bits > 32))
     {
         goto invalid_args;
     }
 
-    if(args[7].u_obj != mp_const_none)
+    if(args[ARG_mosi].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[7].u_obj, "%s_SPI%d_MOSI", self->spi_id);
+        pin_config_by_func(args[ARG_mosi].u_obj, "%s_SPI%d_MOSI", self->spi_id);
     }
 
-    if(args[8].u_obj != mp_const_none)
+    if(args[ARG_miso].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[8].u_obj, "%s_SPI%d_MISO", self->spi_id);
+        pin_config_by_func(args[ARG_miso].u_obj, "%s_SPI%d_MISO", self->spi_id);
     }
 
-    if(args[9].u_obj != mp_const_none)
+    if(args[ARG_clk].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[9].u_obj, "%s_SPI%d_CLK", self->spi_id);
+        pin_config_by_func(args[ARG_clk].u_obj, "%s_SPI%d_CLK", self->spi_id);
     }
 
-    if(args[10].u_obj != mp_const_none)
+    if(args[ARG_cs].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[10].u_obj, "%s_SPI%d_SS", self->spi_id);
+        pin_config_by_func(args[ARG_cs].u_obj, "%s_SPI%d_SS", self->spi_id);
     }
 
     switch(self->spi_id) {
@@ -257,56 +259,56 @@ invalid_args:
 }
 
 
-STATIC mp_obj_t pyb_spi_write(mp_obj_t self_in, mp_obj_t buf)
+STATIC mp_obj_t pyb_spi_write(mp_obj_t self_in, mp_obj_t data)
 {
     pyb_spi_obj_t *self = self_in;
 
     // get the buffer to send from
     mp_buffer_info_t bufinfo;
-    uint8_t data[1];
-    pyb_buf_get_for_send(buf, &bufinfo, data);
+    uint8_t buffer[1];
+    pyb_buf_get_for_send(data, &bufinfo, buffer);
 
     // just send
     pybspi_transfer(self, (const char *)bufinfo.buf, NULL, bufinfo.len, NULL);
 
     return mp_obj_new_int(bufinfo.len);     // return the number of bytes written
 }
-
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_spi_write_obj, pyb_spi_write);
 
 
-static const mp_arg_t pyb_spi_read_args[] = {
-    { MP_QSTR_nbytes,  MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_write,   MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0xFF} },
-};
 STATIC mp_obj_t pyb_spi_read(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_nbytes, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_write,  MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0xFF} },
+    };
+
     // parse args
     pyb_spi_obj_t *self = pos_args[0];
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_spi_read_args)];
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(pyb_spi_read_args), pyb_spi_read_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     // get the buffer to receive into
     vstr_t vstr;
-    pyb_buf_get_for_recv(args[0].u_obj, &vstr); // first arg need mp_obj_t type
+    pyb_buf_get_for_recv(args[0].u_obj, &vstr);
 
     // just receive
     pybspi_transfer(self, NULL, vstr.buf, vstr.len, (uint32_t *)&args[1].u_int);
 
     return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);     // return the received data
 }
-
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_spi_read_obj, 1, pyb_spi_read);
 
 
-static const mp_arg_t pyb_spi_readinto_args[] = {
-    { MP_QSTR_buf,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_write,   MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0xFF} },
-};
 STATIC mp_obj_t pyb_spi_readinto(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_buf,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_write,   MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0xFF} },
+    };
+
     // parse args
     pyb_spi_obj_t *self = pos_args[0];
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_spi_readinto_args)];
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(pyb_spi_readinto_args), pyb_spi_readinto_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     // get the buffer to receive into
     vstr_t vstr;
@@ -320,29 +322,29 @@ STATIC mp_obj_t pyb_spi_readinto(size_t n_args, const mp_obj_t *pos_args, mp_map
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_spi_readinto_obj, 1, pyb_spi_readinto);
 
 
-STATIC mp_obj_t pyb_spi_write_read(mp_obj_t self_in, mp_obj_t buf)
-{
+STATIC mp_obj_t pyb_spi_write_read(mp_obj_t self_in, mp_obj_t data) {
     pyb_spi_obj_t *self = self_in;
 
     // get the buffer to send from
     mp_buffer_info_t bufinfo;
-    uint8_t data[1];
-    pyb_buf_get_for_send(buf, &bufinfo, data);
+    uint8_t buffer[1];
+    pyb_buf_get_for_send(data, &bufinfo, buffer);
 
     // get the buffer to receive into
     vstr_t vstr;
-    pyb_buf_get_for_recv(MP_OBJ_NEW_SMALL_INT(bufinfo.len), &vstr); // first arg need mp_obj_t type
+    pyb_buf_get_for_recv(MP_OBJ_NEW_SMALL_INT(bufinfo.len), &vstr);
 
     // send and receive
     pybspi_transfer(self, (const char *)bufinfo.buf, vstr.buf, bufinfo.len, NULL);
 
     return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);     // return the received data
 }
-
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_spi_write_read_obj, pyb_spi_write_read);
 
 
-STATIC mp_obj_t pyb_spi_write_readinto (mp_obj_t self, mp_obj_t writebuf, mp_obj_t readbuf) {
+STATIC mp_obj_t pyb_spi_write_readinto (mp_obj_t self_in, mp_obj_t writebuf, mp_obj_t readbuf) {
+    pyb_spi_obj_t *self = self_in;
+
     // get buffers to write from/read to
     mp_buffer_info_t bufinfo_write;
     uint8_t data_send[1];
@@ -368,7 +370,6 @@ STATIC mp_obj_t pyb_spi_write_readinto (mp_obj_t self, mp_obj_t writebuf, mp_obj
 
     return mp_obj_new_int(bufinfo_write.len);   // return the number of transferred bytes
 }
-
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(pyb_spi_write_readinto_obj, pyb_spi_write_readinto);
 
 
@@ -386,7 +387,6 @@ STATIC const mp_rom_map_elem_t pyb_spi_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_CPOL_0),              MP_ROM_INT(SPI_CPOL_0) },
     { MP_ROM_QSTR(MP_QSTR_CPOL_1),              MP_ROM_INT(SPI_CPOL_1) },
 };
-
 STATIC MP_DEFINE_CONST_DICT(pyb_spi_locals_dict, pyb_spi_locals_dict_table);
 
 

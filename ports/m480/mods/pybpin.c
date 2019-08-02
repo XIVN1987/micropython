@@ -182,33 +182,35 @@ STATIC void pin_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t
 }
 
 
-STATIC const mp_arg_t pin_init_args[] = {
-    { MP_QSTR_id,       MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_dir,                        MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_af,       MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_pull,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = GPIO_PUSEL_DISABLE} },
-    { MP_QSTR_irq,      MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = GPIO_INT_DISABLE} },
-    { MP_QSTR_callback, MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_priority, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} }
-};
 STATIC mp_obj_t pin_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    enum { ARG_id, ARG_dir, ARG_af, ARG_pull, ARG_irq, ARG_callback, ARG_priority };
+    STATIC const mp_arg_t allowed_args[] = {
+        { MP_QSTR_id,       MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_dir,                        MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_af,       MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_pull,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = GPIO_PUSEL_DISABLE} },
+        { MP_QSTR_irq,      MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = GPIO_INT_DISABLE} },
+        { MP_QSTR_callback, MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_priority, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} }
+    };
+
     // parse args
     mp_map_t kw_args;
     mp_map_init_fixed_table(&kw_args, n_kw, all_args + n_args);
-    mp_arg_val_t args[MP_ARRAY_SIZE(pin_init_args)];
-    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(pin_init_args), pin_init_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    pin_obj_t *self = pin_find_by_name(args[0].u_obj);
+    pin_obj_t *self = pin_find_by_name(args[ARG_id].u_obj);
 
-    uint af = args[2].u_int;
+    uint af = args[ARG_af].u_int;
 
-    uint dir = args[1].u_int;
+    uint dir = args[ARG_dir].u_int;
     if((dir != GPIO_MODE_INPUT) && (dir != GPIO_MODE_OUTPUT) && (dir != GPIO_MODE_OPEN_DRAIN))
     {
         goto invalid_args;
     }
 
-    uint pull = args[3].u_int;
+    uint pull = args[ARG_pull].u_int;
     if((pull != GPIO_PUSEL_PULL_UP) && (pull != GPIO_PUSEL_PULL_DOWN) && (pull != GPIO_PUSEL_DISABLE))
     {
         goto invalid_args;
@@ -216,20 +218,20 @@ STATIC mp_obj_t pin_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
 
     pin_config_by_value(self, af, dir, pull);
 
-    self->irq_trigger = args[4].u_int;
+    self->irq_trigger = args[ARG_irq].u_int;
     if((self->irq_trigger != GPIO_INT_RISING) && (self->irq_trigger != GPIO_INT_FALLING) && (self->irq_trigger != GPIO_INT_BOTH_EDGE) &&
        (self->irq_trigger != GPIO_INT_LOW) && (self->irq_trigger != GPIO_INT_HIGH) && (self->irq_trigger != GPIO_INT_DISABLE))
     {
         goto invalid_args;
     }
 
-    self->irq_priority = args[6].u_int;
+    self->irq_priority = args[ARG_priority].u_int;
     if(self->irq_priority > 15)
     {
         goto invalid_args;
     }
 
-    self->irq_callback = args[5].u_obj;
+    self->irq_callback = args[ARG_callback].u_obj;
     if(self->irq_callback != mp_const_none)
     {
         if(self->irq_trigger == GPIO_INT_DISABLE)
@@ -252,6 +254,7 @@ invalid_args:
 
 STATIC mp_obj_t pin_value(size_t n_args, const mp_obj_t *args) {
     pin_obj_t *self = args[0];
+
     if (n_args == 1) {
         // get
         return MP_OBJ_NEW_SMALL_INT(*self->preg);

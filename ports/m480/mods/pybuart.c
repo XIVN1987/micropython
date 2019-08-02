@@ -36,7 +36,6 @@
 
 #include "chip/M480.h"
 
-#include "mods/moduos.h"
 #include "mods/pybpin.h"
 #include "mods/pybuart.h"
 
@@ -205,26 +204,28 @@ STATIC void pyb_uart_print(const mp_print_t *print, mp_obj_t self_in, mp_print_k
 }
 
 
-STATIC const mp_arg_t pyb_uart_init_args[] = {
-    { MP_QSTR_id,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 1} },
-    { MP_QSTR_baudrate, MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 115200} },
-    { MP_QSTR_bits,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 8} },
-    { MP_QSTR_parity,   MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_stop,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 1} },
-    { MP_QSTR_irq,      MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
-    { MP_QSTR_callback, MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_priority, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 8} },
-    { MP_QSTR_rxd,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_txd,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_rts,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-    { MP_QSTR_cts,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-};
 STATIC mp_obj_t pyb_uart_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    enum { ARG_id, ARG_baudrate, ARG_bits, ARG_parity, ARG_stop, ARG_irq, ARG_callback, ARG_priority, ARG_rxd, ARG_txd, ARG_rts, ARG_cts };
+    STATIC const mp_arg_t allowed_args[] = {
+        { MP_QSTR_id,       MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 1} },
+        { MP_QSTR_baudrate, MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 115200} },
+        { MP_QSTR_bits,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 8} },
+        { MP_QSTR_parity,   MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_stop,     MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 1} },
+        { MP_QSTR_irq,      MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_callback, MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_priority, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 8} },
+        { MP_QSTR_rxd,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_txd,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_rts,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_cts,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+    };
+
     // parse args
     mp_map_t kw_args;
     mp_map_init_fixed_table(&kw_args, n_kw, all_args + n_args);
-    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_uart_init_args)];
-    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(args), pyb_uart_init_args, args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     uint uart_id = args[0].u_int;
     if(uart_id >= PYB_NUM_UARTS) {
@@ -234,21 +235,21 @@ STATIC mp_obj_t pyb_uart_make_new(const mp_obj_type_t *type, size_t n_args, size
     pyb_uart_obj_t *self = &pyb_uart_obj[uart_id];
     self->base.type = &pyb_uart_type;
 
-    self->baudrate = args[1].u_int;
+    self->baudrate = args[ARG_baudrate].u_int;
 
-    self->databits = args[2].u_int;
+    self->databits = args[ARG_bits].u_int;
     if((self->databits < 5) || (self->databits > 8))
     {
         goto invalid_args;
     }
 
-    if(args[3].u_obj == mp_const_none)
+    if(args[ARG_parity].u_obj == mp_const_none)
     {
         self->parity = UART_PARITY_NONE;
     }
-    else if(MP_OBJ_IS_INT(args[3].u_obj))
+    else if(MP_OBJ_IS_INT(args[ARG_parity].u_obj))
     {
-        switch(mp_obj_get_int(args[3].u_obj)) {
+        switch(mp_obj_get_int(args[ARG_parity].u_obj)) {
         case UART_PARITY_NONE:  self->parity = UART_PARITY_NONE;  break;
         case UART_PARITY_ODD:   self->parity = UART_PARITY_ODD;   break;
         case UART_PARITY_EVEN:  self->parity = UART_PARITY_EVEN;  break;
@@ -257,9 +258,9 @@ STATIC mp_obj_t pyb_uart_make_new(const mp_obj_type_t *type, size_t n_args, size
         default: goto invalid_args;
         }
     }
-    else if(MP_OBJ_IS_STR(args[3].u_obj))
+    else if(MP_OBJ_IS_STR(args[ARG_parity].u_obj))
     {
-        const char *str = mp_obj_str_get_str(args[3].u_obj);
+        const char *str = mp_obj_str_get_str(args[ARG_parity].u_obj);
         if((strcmp(str, "none") == 0) || (strcmp(str, "None") == 0) || (strcmp(str, "NONE") == 0))
         {
             self->parity = UART_PARITY_NONE;
@@ -290,17 +291,17 @@ STATIC mp_obj_t pyb_uart_make_new(const mp_obj_type_t *type, size_t n_args, size
         goto invalid_args;
     }
 
-    self->stopbits = args[4].u_int;
+    self->stopbits = args[ARG_stop].u_int;
     if((self->stopbits < 1) || (self->stopbits > 2))
     {
         goto invalid_args;
     }
 
-    self->irq_trigger = args[5].u_int;
+    self->irq_trigger = args[ARG_irq].u_int;
 
-    self->irq_callback = args[6].u_obj;
+    self->irq_callback = args[ARG_callback].u_obj;
 
-    self->irq_priority = args[7].u_int;
+    self->irq_priority = args[ARG_priority].u_int;
     if(self->irq_priority > 15)
     {
         goto invalid_args;
@@ -311,24 +312,24 @@ STATIC mp_obj_t pyb_uart_make_new(const mp_obj_type_t *type, size_t n_args, size
     self->read_buf = MP_OBJ_NULL; // free the read buffer before allocating again
     self->read_buf = m_new(byte, PYBUART_RX_BUFFER_LEN);
 
-    if(args[8].u_obj != mp_const_none)
+    if(args[ARG_rxd].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[8].u_obj, "%s_UART%d_RXD", self->uart_id);
+        pin_config_by_func(args[ARG_rxd].u_obj, "%s_UART%d_RXD", self->uart_id);
     }
 
-    if(args[9].u_obj != mp_const_none)
+    if(args[ARG_txd].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[9].u_obj, "%s_UART%d_TXD", self->uart_id);
+        pin_config_by_func(args[ARG_txd].u_obj, "%s_UART%d_TXD", self->uart_id);
     }
 
-    if(args[10].u_obj != mp_const_none)
+    if(args[ARG_rts].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[10].u_obj, "%s_UART%d_nRTS", self->uart_id);
+        pin_config_by_func(args[ARG_rts].u_obj, "%s_UART%d_nRTS", self->uart_id);
     }
 
-    if(args[11].u_obj != mp_const_none)
+    if(args[ARG_cts].u_obj != mp_const_none)
     {
-        pin_config_by_func(args[11].u_obj, "%s_UART%d_nCTS", self->uart_id);
+        pin_config_by_func(args[ARG_cts].u_obj, "%s_UART%d_nCTS", self->uart_id);
     }
 
     switch(self->uart_id) {
@@ -476,7 +477,7 @@ STATIC void UARTX_Handler(uint32_t uart_id) {
         {
             uint chr = self->UARTx->DAT & UART_DAT_DAT_Msk;
 
-            if (MP_STATE_PORT(os_term_dup_obj) && MP_STATE_PORT(os_term_dup_obj)->stream_o == self && chr == mp_interrupt_char) {
+            if (MP_STATE_PORT(dupterm_objs[0]) && MP_STATE_PORT(dupterm_objs[0]) == self && chr == mp_interrupt_char) {
                 // raise an exception when interrupts are finished
                 mp_keyboard_interrupt();
             } else {
@@ -538,6 +539,7 @@ STATIC const mp_rom_map_elem_t pyb_uart_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_PARITY_ZERO), MP_ROM_INT(UART_PARITY_SPACE) },
 };
 STATIC MP_DEFINE_CONST_DICT(pyb_uart_locals_dict, pyb_uart_locals_dict_table);
+
 
 const mp_obj_type_t pyb_uart_type = {
     { &mp_type_type },

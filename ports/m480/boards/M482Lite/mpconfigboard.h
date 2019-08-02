@@ -28,13 +28,15 @@
 #ifndef MICROPY_INCLUDED_M480_MPCONFIGBOARD_H
 #define MICROPY_INCLUDED_M480_MPCONFIGBOARD_H
 
-#define MICROPY_STDIO_UART                          0
-#define MICROPY_STDIO_UART_BAUD                     115200
+#define MICROPY_STDIO_UART              0
+#define MICROPY_STDIO_UART_BAUD         115200
 
-#define MICROPY_HW_MCU_NAME                         "M482"
-#define MICROPY_HW_BOARD_NAME                       "M482Lite"
+#define MICROPY_HW_MCU_NAME             "M482"
+#define MICROPY_HW_BOARD_NAME           "M482Lite"
 
-#define MICROPY_SW_VERSION_NUMBER                   "1.0.0"
+#define MICROPY_SW_VERSION_NUMBER       "1.0.0"
+
+#define MICROPY_HW_ENABLE_USB           (1)
 
 
 #endif

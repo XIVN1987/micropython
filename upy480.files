@@ -1,6 +1,6 @@
 ports/m480/main.c
+ports/m480/misc.c
 ports/m480/mphalport.c
-ports/m480/fatfs_port.c
 ports/m480/boards/M480_prefix.c
 ports/m480/build-M482Lite/pins.c
 ports/m480/mods/moduos.c
@@ -21,9 +21,8 @@ ports/m480/mods/pybdac.c
 ports/m480/mods/pybpwm.c
 ports/m480/mods/pybcan.c
 ports/m480/mods/pybusb.c
-ports/m480/mods/usb_desc.c
-ports/m480/mods/usb_tran.c
-ports/m480/mods/pybdma.c
+ports/m480/mods/pybusb_desc.c
+ports/m480/mods/pybusb_vcom.c
 ports/m480/mods/pybrtc.c
 ports/m480/mods/pybrng.c
 ports/m480/misc/bufhelper.c

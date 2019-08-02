@@ -34,7 +34,6 @@
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
 
-#include "mods/moduos.h"
 #include "mods/pybpin.h"
 #include "mods/pybuart.h"
 #include "mods/pybflash.h"
@@ -44,6 +43,8 @@
 #include "mods/pybadc.h"
 #include "mods/pybdac.h"
 #include "mods/pybpwm.h"
+#include "mods/pybrtc.h"
+#include "mods/pybrng.h"
 
 
 /// \module machine - functions related to the SoC
@@ -120,6 +121,10 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_ADC),                 MP_ROM_PTR(&pyb_adc_type) },
     { MP_ROM_QSTR(MP_QSTR_DAC),                 MP_ROM_PTR(&pyb_dac_type) },
     { MP_ROM_QSTR(MP_QSTR_PWM),                 MP_ROM_PTR(&pyb_pwm_type) },
+
+    { MP_ROM_QSTR(MP_QSTR_rtc_get),             MP_ROM_PTR(&pyb_rtc_get_obj) },
+    { MP_ROM_QSTR(MP_QSTR_rtc_set),             MP_ROM_PTR(&pyb_rtc_set_obj) },
+    { MP_ROM_QSTR(MP_QSTR_rng_get),             MP_ROM_PTR(&pyb_rng_get_obj) },
 
     // class constants
     // { MP_ROM_QSTR(MP_QSTR_PWRON_RESET),         MP_ROM_INT(PYB_SLP_PWRON_RESET) },
