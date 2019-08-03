@@ -42,9 +42,6 @@ INC += -Ichip
 INC += -Ichip/regs
 INC += -Imods
 INC += -Imisc
-INC += -Irtos
-INC += -Irtos/include
-INC += -Irtos/ports/ARM_CM4
 INC += -Iboards/$(BOARD)
 INC += -I$(BUILD)
 INC += -I$(BUILD)/genhdr
@@ -126,15 +123,6 @@ CHIP_SRC_S = $(addprefix chip/,\
 	boot/gcc/startup_M480.s \
 )
 
-RTOS_SRC_C = $(addprefix rtos/,\
-	list.c \
-	queue.c \
-	tasks.c \
-	timers.c \
-	ports/ARM_CM4/port.c \
-	ports/MemMang/heap_4.c \
-)
-
 LIBS_SRC_C = $(addprefix lib/,\
 	oofatfs/ff.c \
 	oofatfs/ffunicode.c \
@@ -147,8 +135,8 @@ LIBS_SRC_C = $(addprefix lib/,\
 )
 
 OBJ = $(PY_O) 
-OBJ += $(addprefix $(BUILD)/, $(MAIN_SRC_C:.c=.o) $(MODS_SRC_C:.c=.o) $(MISC_SRC_C:.c=.o) )
-OBJ += $(addprefix $(BUILD)/, $(CHIP_SRC_C:.c=.o) $(CHIP_SRC_S:.s=.o) $(RTOS_SRC_C:.c=.o) $(LIBS_SRC_C:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(MAIN_SRC_C:.c=.o) $(MODS_SRC_C:.c=.o) $(MISC_SRC_C:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(CHIP_SRC_C:.c=.o) $(CHIP_SRC_S:.s=.o) $(LIBS_SRC_C:.c=.o))
 OBJ += $(BUILD)/pins.o
 
 

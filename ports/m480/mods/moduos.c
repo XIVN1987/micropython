@@ -42,6 +42,7 @@
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
 
+#include "mods/pybrng.h"
 #include "mods/pybusb.h"
 #include "mods/pybuart.h"
 
@@ -99,7 +100,7 @@ STATIC mp_obj_t os_urandom(mp_obj_t num) {
     vstr_t vstr;
     vstr_init_len(&vstr, n);
     for(int i = 0; i < n; i++) {
-        vstr.buf[i] = 0;//TODO: rng_get();
+        vstr.buf[i] = rng_get();
     }
     return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
 }

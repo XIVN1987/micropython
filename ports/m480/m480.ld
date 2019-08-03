@@ -57,6 +57,9 @@ SECTIONS
         __HeapBase = .;
 
         *(.heap)
+
+        . = ALIGN(4);
+        __HeapLimit = .;
     } > RAM
 
     /* .stack_dummy section doesn't contains any symbols.

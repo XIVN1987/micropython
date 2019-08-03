@@ -7,9 +7,6 @@
 #include "py/runtime.h"
 #include "py/mpconfig.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-
 #include "chip/M480.h"
 
 #include "lib/oofatfs/ff.h"
@@ -17,19 +14,6 @@
 
 #include "mods/pybrtc.h"
 
-
-// This is the static memory (TCB and stack) for the idle task
-static StaticTask_t TaskIdleTCB;
-static StackType_t  TaskIdleStack[configMINIMAL_STACK_SIZE];
-
-// We need this when configSUPPORT_STATIC_ALLOCATION is enabled
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
-                                       StackType_t **ppxIdleTaskStackBuffer,
-                                       uint32_t *pulIdleTaskStackSize ) {
-    *ppxIdleTaskTCBBuffer = &TaskIdleTCB;
-    *ppxIdleTaskStackBuffer = TaskIdleStack;
-    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
-}
 
 
 uint32_t get_fattime(void) {
@@ -40,7 +24,6 @@ uint32_t get_fattime(void) {
              ((tm.tm_mday) << 16)       | ((tm.tm_hour) << 11) |
              ((tm.tm_min) << 5)         | (tm.tm_sec >> 1);
 }
-
 
 
 void NORETURN __fatal_error(const char *msg) {

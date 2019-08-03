@@ -46,12 +46,10 @@
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-
 #include "chip/M480.h"
 
 #include "mods/pybrtc.h"
+#include "mods/pybrng.h"
 #include "mods/pybuart.h"
 #include "mods/pybflash.h"
 #include "mods/pybusb_vcom.h"
@@ -71,14 +69,8 @@ static const char fresh_boot_py[] = "# boot.py -- run on boot-up\r\n"
 
 void systemInit(void);
 void USB_Config(void);
-void Task_MicroPy(void *argv);
 void init_sflash_filesystem(void);
 
-
-#define TAKS_MICROPY_PRIORITY   10
-static StaticTask_t Task_MicroPy_TCB;
-#define TASK_MICROPY_STK_DEPTH  (1024 * 16 / sizeof(StackType_t))
-static StackType_t  Task_MicroPy_Stk[TASK_MICROPY_STK_DEPTH];
 
 int main(void)
 {
@@ -86,20 +78,14 @@ int main(void)
 
     USB_Config();
 
-    xTaskCreateStatic(Task_MicroPy, "MicroPy", TASK_MICROPY_STK_DEPTH, NULL,
-                      TAKS_MICROPY_PRIORITY, Task_MicroPy_Stk, &Task_MicroPy_TCB);
+    rtc_init();
+    rng_init();
 
-    vTaskStartScheduler();
-}
-
-
-void Task_MicroPy(void *argv)
-{
-    uint sp = __get_PSP();
+    SysTick_Config(SystemCoreClock / 1000);
 
 soft_reset:
-    mp_stack_set_top((void*)sp);
-    mp_stack_set_limit(sizeof(Task_MicroPy_Stk) - 1024);
+    mp_stack_set_top((char*)&__StackTop);
+    mp_stack_set_limit((char*)&__StackTop - (char*)&__StackLimit - 1024);
 
     gc_init(&__HeapBase, &__HeapLimit);
 
@@ -109,9 +95,10 @@ soft_reset:
     mp_obj_list_init(mp_sys_argv, 0);
     mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR_)); // current dir (or base dir of the script)
 
-    rtc_init();
     uart_init0();
     readline_init0();
+
+     MP_STATE_VM(dupterm_objs[0]) = MP_OBJ_FROM_PTR(&MP_STATE_PORT(pyb_uart_objs)[0]);
 
     // initialize the serial flash file system
     init_sflash_filesystem();
