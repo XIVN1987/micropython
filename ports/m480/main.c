@@ -59,11 +59,9 @@
 
 static const char fresh_main_py[] = "# main.py -- put your code here!\r\n";
 static const char fresh_boot_py[] = "# boot.py -- run on boot-up\r\n"
-                                    "# can run arbitrary Python, but best to keep it minimal\r\n"
-                                    #ifdef MICROPY_STDIO_UART
                                     "import os, machine\r\n"
+                                    "os.dupterm(machine.USB_VCP())\r\n"
                                     "os.dupterm(machine.UART(0, 115200, rxd='PA0', txd='PA1'))\r\n"
-                                    #endif
                                     ;
 
 
@@ -97,8 +95,6 @@ soft_reset:
 
     uart_init0();
     readline_init0();
-
-     MP_STATE_VM(dupterm_objs[0]) = MP_OBJ_FROM_PTR(&MP_STATE_PORT(pyb_uart_objs)[0]);
 
     // initialize the serial flash file system
     init_sflash_filesystem();

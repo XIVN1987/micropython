@@ -162,28 +162,26 @@ void EP3_Handler(void)
     vcom.out_bytes = USBD_GET_PAYLOAD_LEN(EP3);
     vcom.out_ptr = (uint8_t *)(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP3));
 
-    uint len = RX_BUFF_SIZE - vcom.rx_tail;
-    if(len >= vcom.out_bytes)
+    if(vcom.rx_read <= vcom.rx_write)
     {
-        USBD_MemCopy((uint8_t *)&vcom.rx_buff[vcom.rx_tail], (uint8_t *)vcom.out_ptr, vcom.out_bytes);
-        vcom.rx_tail += vcom.out_bytes;
+        uint n = RX_BUFF_SIZE - vcom.rx_write;
+        if(n > vcom.out_bytes) n = vcom.out_bytes;
 
-        if(vcom.rx_tail == RX_BUFF_SIZE) vcom.rx_tail = 0;
+        USBD_MemCopy((uint8_t *)&vcom.rx_buff[vcom.rx_write], (uint8_t *)vcom.out_ptr, n);
+        vcom.rx_write += n;
+        if(vcom.rx_write == RX_BUFF_SIZE) vcom.rx_write = 0;
+
+        vcom.out_ptr += n;
+        vcom.out_bytes -= n;
     }
-    else
-    {
-        USBD_MemCopy((uint8_t *)&vcom.rx_buff[vcom.rx_tail], (uint8_t *)vcom.out_ptr, len);
 
-        if(vcom.rx_head - 1 >= vcom.out_bytes - len)
-        {
-            USBD_MemCopy((uint8_t *)&vcom.rx_buff[0], ((uint8_t *)vcom.out_ptr) + len, vcom.out_bytes - len);
-            vcom.rx_tail = vcom.out_bytes - len;
-        }
-        else
-        {
-            USBD_MemCopy((uint8_t *)&vcom.rx_buff[0], ((uint8_t *)vcom.out_ptr) + len, vcom.rx_head - 1);
-            vcom.rx_tail = vcom.rx_head - 1;
-        }
+    if(vcom.out_bytes)
+    {
+        uint n = (vcom.rx_read - 1) - vcom.rx_write;
+        if(n > vcom.out_bytes) n = vcom.out_bytes;
+
+        USBD_MemCopy((uint8_t *)&vcom.rx_buff[vcom.rx_write], (uint8_t *)vcom.out_ptr, n);
+        vcom.rx_write += n;
     }
 
     /* Ready to get next BULK out */
@@ -294,11 +292,11 @@ void VCOM_LineCoding(void)
     NVIC_DisableIRQ(UART0_IRQn);
     // Reset software FIFO
     vcom.rx_bytes = 0;
-    vcom.rx_head = 0;
-    vcom.rx_tail = 0;
+    vcom.rx_read = 0;
+    vcom.rx_write = 0;
 
-    vcom.tx_bytes = 0;
-    vcom.tx_head = 0;
+    vcom.tx_write = 0;
+    vcom.tx_read = 0;
     vcom.tx_tail = 0;
 
     // Reset hardware FIFO
@@ -341,30 +339,40 @@ void VCOM_LineCoding(void)
 
 uint USB_VCP_canSend(void)
 {
-    return (vcom.tx_head == vcom.tx_bytes);
+    return (vcom.tx_read == vcom.tx_write);
 }
 
 uint USB_VCP_send(uint8_t *buffer, uint32_t len, uint32_t timeout)
 {
+    if(len > TX_BUFF_SIZE) len = TX_BUFF_SIZE;
+
     memcpy(vcom.tx_buff, buffer, len);
-    vcom.tx_bytes = len;
-    vcom.tx_head = 0;
+    vcom.tx_write = len;
+    vcom.tx_read = 0;
 
     USB_VCP_sendPack();
 
-    uint startTime = mp_hal_ticks_ms();
-    while((mp_hal_ticks_ms() - startTime) < timeout) {
-        if(vcom.tx_head == vcom.tx_bytes) break;
+    uint tx_read_save = vcom.tx_read;
+
+    uint start = mp_hal_ticks_ms();
+    while((mp_hal_ticks_ms() - start) < timeout) {
+        if(tx_read_save != vcom.tx_read) {
+            tx_read_save = vcom.tx_read;
+
+            start = mp_hal_ticks_ms();
+        }
+
+        //if(vcom.tx_read == vcom.tx_write) break;  at this moment, data hasn't sent out
     }
 
-    return vcom.tx_head;
+    return 1;
 }
 
 void USB_VCP_sendPack(void)
 {
-    uint len = vcom.tx_bytes - vcom.tx_head;
+    uint n = vcom.tx_write - vcom.tx_read;
 
-    if(len == 0)
+    if(n == 0)
     {
         /* Prepare a zero packet if previous packet size is EP2_MAX_PKT_SIZE and
            no more data to send at this moment to note Host the transfer has been done */
@@ -374,121 +382,49 @@ void USB_VCP_sendPack(void)
         return;
     }
 
-    if(len > EP2_MAX_PKT_SIZE) len = EP2_MAX_PKT_SIZE;
+    if(n > 64) n = 64;
 
-    USBD_MemCopy((uint8_t *)(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP2)), (uint8_t *)&vcom.tx_buff[vcom.tx_head], len);
-    USBD_SET_PAYLOAD_LEN(EP2, len);
+    USBD_MemCopy((uint8_t *)(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP2)), (uint8_t *)&vcom.tx_buff[vcom.tx_read], n);
+    USBD_SET_PAYLOAD_LEN(EP2, n);
 
-    vcom.tx_head += len;
+    vcom.tx_read += n;
 }
 
 uint USB_VCP_canRecv(void)
 {
-    return (vcom.rx_head != vcom.rx_tail);
+    return (vcom.rx_read != vcom.rx_write);
 }
 
 uint USB_VCP_recv(uint8_t *buffer, uint32_t len, uint32_t timeout)
 {
-    uint cnt;
-    uint rcved = 0;
+    uint rcvd = 0;
 
-    uint startTime = mp_hal_ticks_ms();
-    while((mp_hal_ticks_ms() - startTime) < timeout) {
-        if(vcom.rx_head < vcom.rx_tail)
-        {
-            cnt = vcom.rx_tail - vcom.rx_head;
-            if(cnt > len) cnt = len;
-
-            memcpy(&buffer[rcved], &vcom.rx_buff[vcom.rx_head], cnt);
-            vcom.rx_head += cnt;
-            rcved += cnt;
-        }
-        else if(vcom.rx_tail < vcom.rx_head)
-        {
-            cnt = RX_BUFF_SIZE - vcom.rx_head;
-            if(cnt > len) cnt = len;
-
-            memcpy(&buffer[rcved], &vcom.rx_buff[vcom.rx_head], cnt);
-            vcom.rx_head += cnt;
-            rcved += cnt;
-
-            if(vcom.rx_head == RX_BUFF_SIZE) vcom.rx_head = 0;
-        }
-
-        if(rcved == len) break;
-    }
-
-    return rcved;
-}
-
-
-void VCOM_TransferData(void)
-{
-    int32_t i, len;
-
-    /* Check whether USB is ready for next packet or not */
-    if(vcom.in_bytes == 0)
+    uint start = mp_hal_ticks_ms();
+    while((mp_hal_ticks_ms() - start) < timeout)
     {
-        /* Check whether we have new COM Rx data to send to USB or not */
-        if(vcom.rx_bytes)
+        if(vcom.rx_read < vcom.rx_write)
         {
-            len = vcom.rx_bytes;
-            if(len > EP2_MAX_PKT_SIZE)
-                len = EP2_MAX_PKT_SIZE;
+            uint n = vcom.rx_write - vcom.rx_read;
+            if(n > len) n = len;
 
-            for(i = 0; i < len; i++)
-            {
-                vcom.in_buff[i] = vcom.rx_buff[vcom.rx_head++];
-                if(vcom.rx_head >= RX_BUFF_SIZE)
-                    vcom.rx_head = 0;
-            }
-
-            __set_PRIMASK(1);
-            vcom.rx_bytes -= len;
-            __set_PRIMASK(0);
-
-            vcom.in_bytes = len;
-            USBD_MemCopy((uint8_t *)(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP2)), (uint8_t *)vcom.in_buff, len);
-            USBD_SET_PAYLOAD_LEN(EP2, len);
+            memcpy(&buffer[rcvd], &vcom.rx_buff[vcom.rx_read], n);
+            vcom.rx_read += n;
+            rcvd += n;
         }
-        else
+        else if(vcom.rx_write < vcom.rx_read)
         {
+            uint n = RX_BUFF_SIZE - vcom.rx_read;
+            if(n > len) n = len;
 
+            memcpy(&buffer[rcvd], &vcom.rx_buff[vcom.rx_read], n);
+            vcom.rx_read += n;
+            rcvd += n;
+
+            if(vcom.rx_read == RX_BUFF_SIZE) vcom.rx_read = 0;
         }
+
+        if(rcvd == len) break;
     }
 
-    /* Process the Bulk out data when bulk out data is ready. */
-    if(vcom.out_ready && (vcom.out_bytes <= TX_BUFF_SIZE - vcom.tx_bytes))
-    {
-
-
-        __set_PRIMASK(1);
-
-        __set_PRIMASK(0);
-
-        vcom.out_bytes = 0;
-        vcom.out_ready = 0; /* Clear bulk out ready flag */
-
-
-    }
-
-    /* Process the software Tx FIFO */
-    if(vcom.tx_bytes)
-    {
-        /* Check if Tx is working */
-        if((UART0->INTEN & UART_INTEN_THREIEN_Msk) == 0)
-        {
-            /* Send one bytes out */
-            UART0->DAT = vcom.tx_buff[vcom.tx_head++];
-            if(vcom.tx_head >= TX_BUFF_SIZE)
-                vcom.tx_head = 0;
-
-            __set_PRIMASK(1);
-            vcom.tx_bytes--;
-            __set_PRIMASK(0);
-
-            /* Enable Tx Empty Interrupt. (Trigger first one) */
-            UART0->INTEN |= UART_INTEN_THREIEN_Msk;
-        }
-    }
+    return rcvd;
 }

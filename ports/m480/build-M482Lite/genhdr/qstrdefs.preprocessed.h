@@ -4461,6 +4461,8 @@ Q(ULONGLONG)
 
 Q(USB_VCP)
 
+Q(USB_VCP)
+
 Q(USHORT)
 
 Q(UnicodeError)

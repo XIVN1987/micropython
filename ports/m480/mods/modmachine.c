@@ -43,6 +43,7 @@
 #include "mods/pybadc.h"
 #include "mods/pybdac.h"
 #include "mods/pybpwm.h"
+#include "mods/pybusb.h"
 #include "mods/pybrtc.h"
 #include "mods/pybrng.h"
 
@@ -121,6 +122,7 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_ADC),                 MP_ROM_PTR(&pyb_adc_type) },
     { MP_ROM_QSTR(MP_QSTR_DAC),                 MP_ROM_PTR(&pyb_dac_type) },
     { MP_ROM_QSTR(MP_QSTR_PWM),                 MP_ROM_PTR(&pyb_pwm_type) },
+    { MP_ROM_QSTR(MP_QSTR_USB_VCP),             MP_ROM_PTR(&pyb_usb_vcp_type) },
 
     { MP_ROM_QSTR(MP_QSTR_rtc_get),             MP_ROM_PTR(&pyb_rtc_get_obj) },
     { MP_ROM_QSTR(MP_QSTR_rtc_set),             MP_ROM_PTR(&pyb_rtc_set_obj) },

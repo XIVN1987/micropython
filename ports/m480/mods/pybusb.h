@@ -26,7 +26,8 @@
 #ifndef MICROPY_INCLUDED_MODS_PYUSB_H
 #define MICROPY_INCLUDED_MODS_PYUSB_H
 
+
 extern const mp_obj_type_t pyb_usb_vcp_type;
 
-MP_DECLARE_CONST_FUN_OBJ_KW(pyb_usb_mode_obj);
+
 #endif //MICROPY_INCLUDED_MODS_PYUSB_H

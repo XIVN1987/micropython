@@ -116,25 +116,17 @@ bool mp_uos_dupterm_is_builtin_stream(mp_const_obj_t stream) {
 }
 
 STATIC mp_obj_t uos_dupterm(size_t n_args, const mp_obj_t *args) {
-    mp_obj_t prev_obj = mp_uos_dupterm_obj.fun.var(n_args, args);
-    if (mp_obj_get_type(prev_obj) == &pyb_uart_type) {
-        //uart_attach_to_repl(MP_OBJ_TO_PTR(prev_obj), false);
-    }
-    #if MICROPY_HW_ENABLE_USB
-    if (mp_obj_get_type(prev_obj) == &pyb_usb_vcp_type) {
-        //usb_vcp_attach_to_repl(MP_OBJ_TO_PTR(prev_obj), false);
-    }
-    #endif
+    if(n_args == 0) {
+        return MP_STATE_VM(dupterm_objs[0]);
+    } else {
+        if(MP_OBJ_IS_TYPE(args[0], &pyb_uart_type)) {
+            MP_STATE_VM(dupterm_objs[0]) = args[0];
+        } else if(MP_OBJ_IS_TYPE(args[0], &pyb_usb_vcp_type)) {
+            MP_STATE_VM(dupterm_objs[1]) = args[0];
+        }
 
-    if (mp_obj_get_type(args[0]) == &pyb_uart_type) {
-        //uart_attach_to_repl(MP_OBJ_TO_PTR(args[0]), true);
+        return mp_const_none;
     }
-    #if MICROPY_HW_ENABLE_USB
-    if (mp_obj_get_type(args[0]) == &pyb_usb_vcp_type) {
-        //usb_vcp_attach_to_repl(MP_OBJ_TO_PTR(args[0]), true);
-    }
-    #endif
-    return prev_obj;
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(uos_dupterm_obj, 1, 2, uos_dupterm);
 

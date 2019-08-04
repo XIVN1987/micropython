@@ -192,7 +192,7 @@ STATIC MP_DEFINE_CONST_DICT(pyb_usb_vcp_locals_dict, pyb_usb_vcp_locals_dict_tab
 
 STATIC mp_uint_t pyb_usb_vcp_read(mp_obj_t self_in, void *buf, mp_uint_t size, int *errcode) {
     pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    int ret = USB_VCP_recv((byte*)buf, size, 0);
+    int ret = USB_VCP_recv((byte*)buf, size, 1);
     if (ret == 0) {
         // return EAGAIN error to indicate non-blocking
         *errcode = MP_EAGAIN;
@@ -203,7 +203,7 @@ STATIC mp_uint_t pyb_usb_vcp_read(mp_obj_t self_in, void *buf, mp_uint_t size, i
 
 STATIC mp_uint_t pyb_usb_vcp_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
     pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    int ret = USB_VCP_send((uint8_t *)buf, size, 0);
+    int ret = USB_VCP_send((uint8_t *)buf, size, 1);
     if (ret == 0) {
         // return EAGAIN error to indicate non-blocking
         *errcode = MP_EAGAIN;

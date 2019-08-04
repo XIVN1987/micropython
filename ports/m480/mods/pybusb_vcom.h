@@ -59,27 +59,25 @@ typedef struct
 } STR_VCOM_LINE_CODING;
 
 
-#define RX_BUFF_SIZE    512 	// RX buffer size
-#define TX_BUFF_SIZE    512 	// RX buffer size
+#define RX_BUFF_SIZE    1024 	// RX buffer size
+#define TX_BUFF_SIZE    1024 	// RX buffer size
 #define TX_FIFO_SIZE	16  	// TX Hardware FIFO size
 
 typedef struct {
 	uint8_t  rx_buff[RX_BUFF_SIZE];
-	uint16_t rx_bytes;
-	uint16_t rx_head;
-	uint16_t rx_tail;
+    uint16_t rx_write;  // Full ： rx_read == rx_write
+    uint16_t rx_read;   // Empty： rx_write == rx_read - 1
+
 	uint8_t  tx_buff[TX_BUFF_SIZE];
-	uint16_t tx_bytes;
-	uint16_t tx_head;
-	uint16_t tx_tail;
-	
-	uint16_t hw_flow;	// BIT0: DTR(Data Terminal Ready) , BIT1: RTS(Request To Send)
-	
+    uint16_t tx_write;
+    uint16_t tx_read;
+
+    uint16_t hw_flow;
+
 	uint8_t  in_buff[64];
 	uint16_t in_bytes;
 	uint8_t  *out_ptr;
 	uint16_t out_bytes;
-	uint16_t out_ready;
 } VCOM;
 
 
