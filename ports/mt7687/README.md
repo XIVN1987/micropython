@@ -19,3 +19,15 @@ led = machine.Pin(35, machine.Pin.OUT)
 pwm = machine.PWM(21, 1000, 200)
 pwm.start()
 ```
+
+## Special Pin
+GPIO37: 0 Flash normal mode   1 Flash recovery mode
+GPIO59: SWDIO
+GPIO60: SWCLK
+
+
+## Debug Enable (Memory Access Enable)
+monitor reset
+monitor memU32 0x8300F050 = 0x76371688
+monitor memU32 0x8300F050 = 0x76371688
+monitor memU32 0x8300F050 = 0x76371688
