@@ -28,7 +28,7 @@
 
 // Current version of MicroPython
 #define MICROPY_VERSION_MAJOR 1
-#define MICROPY_VERSION_MINOR 11
+#define MICROPY_VERSION_MINOR 12
 #define MICROPY_VERSION_MICRO 0
 
 // Combined version as a 32-bit number for convenience
@@ -70,25 +70,28 @@
 
 // A MicroPython object is a machine word having the following form:
 //  - xxxx...xxx1 : a small int, bits 1 and above are the value
-//  - xxxx...xx10 : a qstr, bits 2 and above are the value
+//  - xxxx...x010 : a qstr, bits 3 and above are the value
+//  - xxxx...x110 : an immediate object, bits 3 and above are the value
 //  - xxxx...xx00 : a pointer to an mp_obj_base_t (unless a fake object)
 #define MICROPY_OBJ_REPR_A (0)
 
 // A MicroPython object is a machine word having the following form:
 //  - xxxx...xx01 : a small int, bits 2 and above are the value
-//  - xxxx...xx11 : a qstr, bits 2 and above are the value
+//  - xxxx...x011 : a qstr, bits 3 and above are the value
+//  - xxxx...x111 : an immediate object, bits 3 and above are the value
 //  - xxxx...xxx0 : a pointer to an mp_obj_base_t (unless a fake object)
 #define MICROPY_OBJ_REPR_B (1)
 
 // A MicroPython object is a machine word having the following form (called R):
 //  - iiiiiiii iiiiiiii iiiiiiii iiiiiii1 small int with 31-bit signed value
-//  - 01111111 1qqqqqqq qqqqqqqq qqqqq110 str with 20-bit qstr value
+//  - 01111111 1qqqqqqq qqqqqqqq qqqq0110 str with 19-bit qstr value
+//  - 01111111 10000000 00000000 ssss1110 immediate object with 4-bit value
 //  - s1111111 10000000 00000000 00000010 +/- inf
 //  - s1111111 1xxxxxxx xxxxxxxx xxxxx010 nan, x != 0
 //  - seeeeeee efffffff ffffffff ffffff10 30-bit fp, e != 0xff
 //  - pppppppp pppppppp pppppppp pppppp00 ptr (4 byte alignment)
-// Str and float stored as O = R + 0x80800000, retrieved as R = O - 0x80800000.
-// This makes strs easier to encode/decode as they have zeros in the top 9 bits.
+// Str, immediate and float stored as O = R + 0x80800000, retrieved as R = O - 0x80800000.
+// This makes strs/immediates easier to encode/decode as they have zeros in the top 9 bits.
 // This scheme only works with 32-bit word size and float enabled.
 #define MICROPY_OBJ_REPR_C (2)
 
@@ -98,6 +101,7 @@
 //  - 01111111 11111000 00000000 00000000 00000000 00000000 00000000 00000000 normalised nan
 //  - 01111111 11111101 iiiiiiii iiiiiiii iiiiiiii iiiiiiii iiiiiiii iiiiiii1 small int
 //  - 01111111 11111110 00000000 00000000 qqqqqqqq qqqqqqqq qqqqqqqq qqqqqqq1 str
+//  - 01111111 11111111 ss000000 00000000 00000000 00000000 00000000 00000000 immediate object
 //  - 01111111 11111100 00000000 00000000 pppppppp pppppppp pppppppp pppppp00 ptr (4 byte alignment)
 // Stored as O = R + 0x8004000000000000, retrieved as R = O - 0x8004000000000000.
 // This makes pointers have all zeros in the top 32 bits.
@@ -107,6 +111,13 @@
 
 #ifndef MICROPY_OBJ_REPR
 #define MICROPY_OBJ_REPR (MICROPY_OBJ_REPR_A)
+#endif
+
+// Whether to encode None/False/True as immediate objects instead of pointers to
+// real objects.  Reduces code size by a decent amount without hurting
+// performance, for all representations except D on some architectures.
+#ifndef MICROPY_OBJ_IMMEDIATE_OBJS
+#define MICROPY_OBJ_IMMEDIATE_OBJS (MICROPY_OBJ_REPR != MICROPY_OBJ_REPR_D)
 #endif
 
 /*****************************************************************************/
@@ -323,8 +334,16 @@
 #define MICROPY_EMIT_INLINE_XTENSA (0)
 #endif
 
+// Whether to emit Xtensa-Windowed native code
+#ifndef MICROPY_EMIT_XTENSAWIN
+#define MICROPY_EMIT_XTENSAWIN (0)
+#endif
+
 // Convenience definition for whether any native emitter is enabled
-#define MICROPY_EMIT_NATIVE (MICROPY_EMIT_X64 || MICROPY_EMIT_X86 || MICROPY_EMIT_THUMB || MICROPY_EMIT_ARM || MICROPY_EMIT_XTENSA)
+#define MICROPY_EMIT_NATIVE (MICROPY_EMIT_X64 || MICROPY_EMIT_X86 || MICROPY_EMIT_THUMB || MICROPY_EMIT_ARM || MICROPY_EMIT_XTENSA || MICROPY_EMIT_XTENSAWIN)
+
+// Select prelude-as-bytes-object for certain emitters
+#define MICROPY_EMIT_NATIVE_PRELUDE_AS_BYTES_OBJ (MICROPY_EMIT_XTENSAWIN)
 
 // Convenience definition for whether any inline assembler emitter is enabled
 #define MICROPY_EMIT_INLINE_ASM (MICROPY_EMIT_INLINE_THUMB || MICROPY_EMIT_INLINE_XTENSA)
@@ -552,9 +571,29 @@
 #define MICROPY_HELPER_REPL (0)
 #endif
 
+// Allow enabling debug prints after each REPL line
+#ifndef MICROPY_REPL_INFO
+#define MICROPY_REPL_INFO (0)
+#endif
+
 // Whether to include emacs-style readline behavior in REPL
 #ifndef MICROPY_REPL_EMACS_KEYS
 #define MICROPY_REPL_EMACS_KEYS (0)
+#endif
+
+// Whether to include emacs-style word movement/kill readline behavior in REPL.
+// This adds Alt+F, Alt+B, Alt+D and Alt+Backspace for forward-word, backward-word, forward-kill-word
+// and backward-kill-word, respectively.
+#ifndef MICROPY_REPL_EMACS_WORDS_MOVE
+#define MICROPY_REPL_EMACS_WORDS_MOVE (0)
+#endif
+
+// Whether to include extra convenience keys for word movement/kill in readline REPL.
+// This adds Ctrl+Right, Ctrl+Left and Ctrl+W for forward-word, backward-word and backward-kill-word
+// respectively. Ctrl+Delete is not implemented because it's a very different escape sequence.
+// Depends on MICROPY_REPL_EMACS_WORDS_MOVE.
+#ifndef MICROPY_REPL_EMACS_EXTRA_WORDS_MOVE
+#define MICROPY_REPL_EMACS_EXTRA_WORDS_MOVE (0)
 #endif
 
 // Whether to implement auto-indent in REPL
@@ -881,6 +920,11 @@ typedef double mp_float_t;
 #define MICROPY_PY_BUILTINS_SLICE_ATTRS (0)
 #endif
 
+// Whether to support the .indices(len) method on slice objects
+#ifndef MICROPY_PY_BUILTINS_SLICE_INDICES
+#define MICROPY_PY_BUILTINS_SLICE_INDICES (0)
+#endif
+
 // Whether to support frozenset object
 #ifndef MICROPY_PY_BUILTINS_FROZENSET
 #define MICROPY_PY_BUILTINS_FROZENSET (0)
@@ -1079,6 +1123,11 @@ typedef double mp_float_t;
 #define MICROPY_PY_MATH_FACTORIAL (0)
 #endif
 
+// Whether to provide math.isclose function
+#ifndef MICROPY_PY_MATH_ISCLOSE
+#define MICROPY_PY_MATH_ISCLOSE (0)
+#endif
+
 // Whether to provide "cmath" module
 #ifndef MICROPY_PY_CMATH
 #define MICROPY_PY_CMATH (0)
@@ -1159,6 +1208,16 @@ typedef double mp_float_t;
 // Whether to provide "sys.exit" function
 #ifndef MICROPY_PY_SYS_EXIT
 #define MICROPY_PY_SYS_EXIT (1)
+#endif
+
+// Whether to provide "sys.atexit" function (MicroPython extension)
+#ifndef MICROPY_PY_SYS_ATEXIT
+#define MICROPY_PY_SYS_ATEXIT (0)
+#endif
+
+// Whether to provide "sys.settrace" function
+#ifndef MICROPY_PY_SYS_SETTRACE
+#define MICROPY_PY_SYS_SETTRACE (0)
 #endif
 
 // Whether to provide "sys.getsizeof" function
@@ -1247,6 +1306,10 @@ typedef double mp_float_t;
 
 #ifndef MICROPY_PY_URE
 #define MICROPY_PY_URE (0)
+#endif
+
+#ifndef MICROPY_PY_URE_DEBUG
+#define MICROPY_PY_URE_DEBUG (0)
 #endif
 
 #ifndef MICROPY_PY_URE_MATCH_GROUPS
@@ -1365,11 +1428,6 @@ typedef double mp_float_t;
 #define MICROPY_PORT_BUILTIN_MODULES
 #endif
 
-// Any module weak links - see objmodule.c:mp_builtin_module_weak_links_table.
-#ifndef MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS
-#define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS
-#endif
-
 // Additional constant definitions for the compiler - see compile.c:mp_constants_table.
 #ifndef MICROPY_PORT_CONSTANTS
 #define MICROPY_PORT_CONSTANTS
@@ -1410,7 +1468,9 @@ typedef double mp_float_t;
 #define BYTES_PER_WORD (sizeof(mp_uint_t))
 #endif
 
+#ifndef BITS_PER_BYTE
 #define BITS_PER_BYTE (8)
+#endif
 #define BITS_PER_WORD (BITS_PER_BYTE * BYTES_PER_WORD)
 // mp_int_t value with most significant bit set
 #define WORD_MSBIT_HIGH (((mp_uint_t)1) << (BYTES_PER_WORD * 8 - 1))
@@ -1517,6 +1577,15 @@ typedef double mp_float_t;
 #define MP_UNLIKELY(x) __builtin_expect((x), 0)
 #endif
 
+// To annotate that code is unreachable
+#ifndef MP_UNREACHABLE
+#if defined(__GNUC__)
+#define MP_UNREACHABLE __builtin_unreachable();
+#else
+#define MP_UNREACHABLE for (;;);
+#endif
+#endif
+
 #ifndef MP_HTOBE16
 #if MP_ENDIANNESS_LITTLE
 # define MP_HTOBE16(x) ((uint16_t)( (((x) & 0xff) << 8) | (((x) >> 8) & 0xff) ))
@@ -1546,6 +1615,16 @@ typedef double mp_float_t;
 #else
 # undef MP_WARN_CAT
 # define MP_WARN_CAT(x) (NULL)
+#endif
+
+// Feature dependency check.
+#if MICROPY_PY_SYS_SETTRACE
+#if !MICROPY_PERSISTENT_CODE_SAVE
+#error "MICROPY_PY_SYS_SETTRACE requires MICROPY_PERSISTENT_CODE_SAVE to be enabled"
+#endif
+#if MICROPY_COMP_CONST
+#error "MICROPY_PY_SYS_SETTRACE requires MICROPY_COMP_CONST to be disabled"
+#endif
 #endif
 
 #endif // MICROPY_INCLUDED_PY_MPCONFIG_H

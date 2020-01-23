@@ -460,7 +460,7 @@ STATIC mp_obj_t instance_unary_op(mp_unary_op_t op, mp_obj_t self_in) {
 }
 
 // Binary-op enum values not listed here will have the default value of 0 in the
-// table, corresponding to MP_QSTR_NULL, and are therefore unsupported (a lookup will
+// table, corresponding to MP_QSTRnull, and are therefore unsupported (a lookup will
 // fail).  They can be added at the expense of code size for the qstr.
 // Qstrs for special methods are guaranteed to have a small value, so we use byte
 // type to represent them.
@@ -478,6 +478,7 @@ const byte mp_binary_op_method_name[MP_BINARY_OP_NUM_RUNTIME] = {
     [MP_BINARY_OP_INPLACE_SUBTRACT] = MP_QSTR___isub__,
     #if MICROPY_PY_ALL_INPLACE_SPECIAL_METHODS
     [MP_BINARY_OP_INPLACE_MULTIPLY] = MP_QSTR___imul__,
+    [MP_BINARY_OP_INPLACE_MAT_MULTIPLY] = MP_QSTR___imatmul__,
     [MP_BINARY_OP_INPLACE_FLOOR_DIVIDE] = MP_QSTR___ifloordiv__,
     [MP_BINARY_OP_INPLACE_TRUE_DIVIDE] = MP_QSTR___itruediv__,
     [MP_BINARY_OP_INPLACE_MODULO] = MP_QSTR___imod__,
@@ -493,6 +494,7 @@ const byte mp_binary_op_method_name[MP_BINARY_OP_NUM_RUNTIME] = {
     [MP_BINARY_OP_SUBTRACT] = MP_QSTR___sub__,
     #if MICROPY_PY_ALL_SPECIAL_METHODS
     [MP_BINARY_OP_MULTIPLY] = MP_QSTR___mul__,
+    [MP_BINARY_OP_MAT_MULTIPLY] = MP_QSTR___matmul__,
     [MP_BINARY_OP_FLOOR_DIVIDE] = MP_QSTR___floordiv__,
     [MP_BINARY_OP_TRUE_DIVIDE] = MP_QSTR___truediv__,
     [MP_BINARY_OP_MODULO] = MP_QSTR___mod__,
@@ -510,6 +512,7 @@ const byte mp_binary_op_method_name[MP_BINARY_OP_NUM_RUNTIME] = {
     [MP_BINARY_OP_REVERSE_SUBTRACT] = MP_QSTR___rsub__,
     #if MICROPY_PY_ALL_SPECIAL_METHODS
     [MP_BINARY_OP_REVERSE_MULTIPLY] = MP_QSTR___rmul__,
+    [MP_BINARY_OP_REVERSE_MAT_MULTIPLY] = MP_QSTR___rmatmul__,
     [MP_BINARY_OP_REVERSE_FLOOR_DIVIDE] = MP_QSTR___rfloordiv__,
     [MP_BINARY_OP_REVERSE_TRUE_DIVIDE] = MP_QSTR___rtruediv__,
     [MP_BINARY_OP_REVERSE_MODULO] = MP_QSTR___rmod__,
@@ -879,7 +882,8 @@ mp_obj_t mp_obj_instance_call(mp_obj_t self_in, size_t n_args, size_t n_kw, cons
     return mp_call_method_self_n_kw(member[0], member[1], n_args, n_kw, args);
 }
 
-STATIC mp_obj_t instance_getiter(mp_obj_t self_in, mp_obj_iter_buf_t *iter_buf) {
+// Note that iter_buf may be NULL, and needs to be allocated if needed
+mp_obj_t mp_obj_instance_getiter(mp_obj_t self_in, mp_obj_iter_buf_t *iter_buf) {
     mp_obj_instance_t *self = MP_OBJ_TO_PTR(self_in);
     mp_obj_t member[2] = {MP_OBJ_NULL};
     struct class_lookup_data lookup = {
@@ -893,7 +897,10 @@ STATIC mp_obj_t instance_getiter(mp_obj_t self_in, mp_obj_iter_buf_t *iter_buf) 
     if (member[0] == MP_OBJ_NULL) {
         return MP_OBJ_NULL;
     } else if (member[0] == MP_OBJ_SENTINEL) {
-        mp_obj_type_t *type = mp_obj_get_type(self->subobj[0]);
+        const mp_obj_type_t *type = mp_obj_get_type(self->subobj[0]);
+        if (iter_buf == NULL) {
+            iter_buf = m_new_obj(mp_obj_iter_buf_t);
+        }
         return type->getiter(self->subobj[0], iter_buf);
     } else {
         return mp_call_method_n_kw(0, 0, member);
@@ -912,7 +919,7 @@ STATIC mp_int_t instance_get_buffer(mp_obj_t self_in, mp_buffer_info_t *bufinfo,
     };
     mp_obj_class_lookup(&lookup, self->base.type);
     if (member[0] == MP_OBJ_SENTINEL) {
-        mp_obj_type_t *type = mp_obj_get_type(self->subobj[0]);
+        const mp_obj_type_t *type = mp_obj_get_type(self->subobj[0]);
         return type->buffer_p.get_buffer(self->subobj[0], bufinfo, flags);
     } else {
         return 1; // object does not support buffer protocol
@@ -1009,6 +1016,21 @@ STATIC void type_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
         #if MICROPY_CPYTHON_COMPAT
         if (attr == MP_QSTR___name__) {
             dest[0] = MP_OBJ_NEW_QSTR(self->name);
+            return;
+        }
+        if (attr == MP_QSTR___bases__) {
+            if (self == &mp_type_object) {
+                dest[0] = mp_const_empty_tuple;
+                return;
+            }
+            mp_obj_t parent_obj = self->parent ? MP_OBJ_FROM_PTR(self->parent) : MP_OBJ_FROM_PTR(&mp_type_object);
+            #if MICROPY_MULTIPLE_INHERITANCE
+            if (mp_obj_is_type(parent_obj, &mp_type_tuple)) {
+                dest[0] = parent_obj;
+                return;
+            }
+            #endif
+            dest[0] = mp_obj_new_tuple(1, &parent_obj);
             return;
         }
         #endif
@@ -1118,7 +1140,7 @@ mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals_dict) 
     o->binary_op = instance_binary_op;
     o->attr = mp_obj_instance_attr;
     o->subscr = instance_subscr;
-    o->getiter = instance_getiter;
+    o->getiter = mp_obj_instance_getiter;
     //o->iternext = ; not implemented
     o->buffer_p.get_buffer = instance_get_buffer;
 
@@ -1371,7 +1393,7 @@ STATIC mp_obj_t mp_builtin_isinstance(mp_obj_t object, mp_obj_t classinfo) {
 MP_DEFINE_CONST_FUN_OBJ_2(mp_builtin_isinstance_obj, mp_builtin_isinstance);
 
 mp_obj_t mp_instance_cast_to_native_base(mp_const_obj_t self_in, mp_const_obj_t native_type) {
-    mp_obj_type_t *self_type = mp_obj_get_type(self_in);
+    const mp_obj_type_t *self_type = mp_obj_get_type(self_in);
     if (!mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(self_type), native_type)) {
         return MP_OBJ_NULL;
     }

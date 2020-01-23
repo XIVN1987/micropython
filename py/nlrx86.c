@@ -56,9 +56,7 @@ __attribute__((used)) unsigned int nlr_push_tail(nlr_buf_t *nlr);
 __attribute__((naked))
 #endif
 unsigned int nlr_push(nlr_buf_t *nlr) {
-    #if !USE_NAKED
     (void)nlr;
-    #endif
 
     __asm volatile (
     #if UNDO_PRELUDE
@@ -100,7 +98,7 @@ NORETURN void nlr_jump(void *val) {
     :                               // clobbered registers
     );
 
-    for (;;); // needed to silence compiler warning
+    MP_UNREACHABLE
 }
 
 #endif // MICROPY_NLR_X86

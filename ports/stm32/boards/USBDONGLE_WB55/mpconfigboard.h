@@ -7,6 +7,7 @@
 
 #define MICROPY_PY_PYB_LEGACY       (0)
 
+#define MICROPY_HW_HAS_FLASH        (1)
 #define MICROPY_HW_ENABLE_RTC       (1)
 #define MICROPY_HW_ENABLE_RNG       (1)
 #define MICROPY_HW_ENABLE_ADC       (0)
@@ -38,6 +39,9 @@
 
 // USB config
 #define MICROPY_HW_USB_FS           (1)
-#define MICROPY_HW_USB_HID          (0)
 #define USBD_CDC_RX_DATA_SIZE       (512)
 #define USBD_CDC_TX_DATA_SIZE       (512)
+
+// Bluetooth config
+#define MICROPY_HW_BLE_UART_ID       (0)
+#define MICROPY_HW_BLE_UART_BAUDRATE (115200)

@@ -22,12 +22,10 @@
 ######################
 *.swp
 
-# Build directory
+# Build directories
 ######################
 build/
-ports/m480/build-M482Lite/*
-ports/mt7687/build-MT7687Lite/*
-ports/swm320/build-SWM320Lite/*
+build-*/
 
 # Test failure outputs
 ######################

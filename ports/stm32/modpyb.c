@@ -142,7 +142,9 @@ STATIC const mp_rom_map_elem_t pyb_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_unique_id), MP_ROM_PTR(&machine_unique_id_obj) },
     { MP_ROM_QSTR(MP_QSTR_freq), MP_ROM_PTR(&machine_freq_obj) },
     #endif
+    #if MICROPY_REPL_INFO
     { MP_ROM_QSTR(MP_QSTR_repl_info), MP_ROM_PTR(&pyb_set_repl_info_obj) },
+    #endif
 
     { MP_ROM_QSTR(MP_QSTR_wfi), MP_ROM_PTR(&pyb_wfi_obj) },
     { MP_ROM_QSTR(MP_QSTR_disable_irq), MP_ROM_PTR(&pyb_disable_irq_obj) },
@@ -170,7 +172,9 @@ STATIC const mp_rom_map_elem_t pyb_module_globals_table[] = {
     #if MICROPY_PY_PYB_LEGACY
     // these 2 are deprecated; use USB_VCP.isconnected and USB_HID.send instead
     { MP_ROM_QSTR(MP_QSTR_have_cdc), MP_ROM_PTR(&pyb_have_cdc_obj) },
+    #if MICROPY_HW_USB_HID
     { MP_ROM_QSTR(MP_QSTR_hid), MP_ROM_PTR(&pyb_hid_send_report_obj) },
+    #endif
     #endif
     #endif
 
@@ -246,7 +250,7 @@ STATIC const mp_rom_map_elem_t pyb_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_DAC), MP_ROM_PTR(&pyb_dac_type) },
 #endif
 
-#if MICROPY_HW_HAS_MMA7660
+#if MICROPY_HW_HAS_MMA7660 || MICROPY_HW_HAS_KXTJ3
     { MP_ROM_QSTR(MP_QSTR_Accel), MP_ROM_PTR(&pyb_accel_type) },
 #endif
 

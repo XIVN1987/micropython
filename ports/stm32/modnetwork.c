@@ -63,6 +63,11 @@ STATIC void pyb_lwip_poll(void) {
 
     // Run the lwIP internal updates
     sys_check_timeouts();
+
+    #if MICROPY_BLUETOOTH_NIMBLE
+    extern void nimble_poll(void);
+    nimble_poll();
+    #endif
 }
 
 void mod_network_lwip_poll_wrapper(uint32_t ticks_ms) {
@@ -114,7 +119,7 @@ mp_obj_t mod_network_find_nic(const uint8_t *ip) {
         return nic;
     }
 
-    nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, "no available NIC"));
+    mp_raise_msg(&mp_type_OSError, "no available NIC");
 }
 
 STATIC mp_obj_t network_route(void) {
@@ -189,10 +194,6 @@ mp_obj_t mod_network_nic_ifconfig(struct netif *netif, size_t n_args, const mp_o
             mp_hal_delay_ms(100);
         }
 
-        #if LWIP_MDNS_RESPONDER
-        mdns_resp_netif_settings_changed(netif);
-        #endif
-
         return mp_const_none;
     } else {
         // Release and stop any existing DHCP
@@ -207,9 +208,6 @@ mp_obj_t mod_network_nic_ifconfig(struct netif *netif, size_t n_args, const mp_o
         ip_addr_t dns;
         netutils_parse_ipv4_addr(items[3], (uint8_t*)&dns, NETUTILS_BIG);
         dns_setserver(0, &dns);
-        #if LWIP_MDNS_RESPONDER
-        mdns_resp_netif_settings_changed(netif);
-        #endif
         return mp_const_none;
     }
 }

@@ -79,7 +79,6 @@
 #include "timer.h"
 #include "uart.h"
 #include "storage.h"
-#include "can.h"
 #include "dma.h"
 #include "i2c.h"
 #include "usb.h"
@@ -298,7 +297,7 @@ void DebugMon_Handler(void) {
 /*  file (startup_stm32f4xx.s).                                               */
 /******************************************************************************/
 
-#if defined(STM32L0)
+#if defined(STM32L0) || defined(STM32L432xx)
 
 #if MICROPY_HW_USB_FS
 void USB_IRQHandler(void) {
@@ -531,7 +530,7 @@ void RTC_WKUP_IRQHandler(void) {
     IRQ_EXIT(RTC_WKUP_IRQn);
 }
 
-#if defined(STM32F0)
+#if defined(STM32F0) || defined(STM32L0)
 
 void RTC_IRQHandler(void) {
     IRQ_ENTER(RTC_IRQn);
@@ -607,6 +606,14 @@ void TIM1_UP_TIM16_IRQHandler(void) {
     timer_irq_handler(1);
     timer_irq_handler(16);
     IRQ_EXIT(TIM1_UP_TIM16_IRQn);
+}
+#endif
+
+#if defined(STM32H7)
+void TIM1_UP_IRQHandler(void) {
+    IRQ_ENTER(TIM1_UP_IRQn);
+    timer_irq_handler(1);
+    IRQ_EXIT(TIM1_UP_IRQn);
 }
 #endif
 
@@ -706,6 +713,26 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void) {
 }
 #endif
 
+#if defined(STM32H7)
+void TIM15_IRQHandler(void) {
+    IRQ_ENTER(TIM15_IRQn);
+    timer_irq_handler(15);
+    IRQ_EXIT(TIM15_IRQn);
+}
+
+void TIM16_IRQHandler(void) {
+    IRQ_ENTER(TIM16_IRQn);
+    timer_irq_handler(16);
+    IRQ_EXIT(TIM16_IRQn);
+}
+
+void TIM17_IRQHandler(void) {
+    IRQ_ENTER(TIM17_IRQn);
+    timer_irq_handler(17);
+    IRQ_EXIT(TIM17_IRQn);
+}
+#endif
+
 // UART/USART IRQ handlers
 void USART1_IRQHandler(void) {
     IRQ_ENTER(USART1_IRQn);
@@ -730,6 +757,15 @@ void USART3_8_IRQHandler(void) {
     uart_irq_handler(7);
     uart_irq_handler(8);
     IRQ_EXIT(USART3_8_IRQn);
+}
+
+#elif defined(STM32L0)
+
+void USART4_5_IRQHandler(void) {
+    IRQ_ENTER(USART4_5_IRQn);
+    uart_irq_handler(4);
+    uart_irq_handler(5);
+    IRQ_EXIT(USART4_5_IRQn);
 }
 
 #else
@@ -790,66 +826,6 @@ void UART10_IRQHandler(void) {
 }
 #endif
 
-#endif
-
-#if defined(MICROPY_HW_CAN1_TX)
-void CAN1_RX0_IRQHandler(void) {
-    IRQ_ENTER(CAN1_RX0_IRQn);
-    can_rx_irq_handler(PYB_CAN_1, CAN_FIFO0);
-    IRQ_EXIT(CAN1_RX0_IRQn);
-}
-
-void CAN1_RX1_IRQHandler(void) {
-    IRQ_ENTER(CAN1_RX1_IRQn);
-    can_rx_irq_handler(PYB_CAN_1, CAN_FIFO1);
-    IRQ_EXIT(CAN1_RX1_IRQn);
-}
-
-void CAN1_SCE_IRQHandler(void) {
-    IRQ_ENTER(CAN1_SCE_IRQn);
-    can_sce_irq_handler(PYB_CAN_1);
-    IRQ_EXIT(CAN1_SCE_IRQn);
-}
-#endif
-
-#if defined(MICROPY_HW_CAN2_TX)
-void CAN2_RX0_IRQHandler(void) {
-    IRQ_ENTER(CAN2_RX0_IRQn);
-    can_rx_irq_handler(PYB_CAN_2, CAN_FIFO0);
-    IRQ_EXIT(CAN2_RX0_IRQn);
-}
-
-void CAN2_RX1_IRQHandler(void) {
-    IRQ_ENTER(CAN2_RX1_IRQn);
-    can_rx_irq_handler(PYB_CAN_2, CAN_FIFO1);
-    IRQ_EXIT(CAN2_RX1_IRQn);
-}
-
-void CAN2_SCE_IRQHandler(void) {
-    IRQ_ENTER(CAN2_SCE_IRQn);
-    can_sce_irq_handler(PYB_CAN_2);
-    IRQ_EXIT(CAN2_SCE_IRQn);
-}
-#endif
-
-#if defined(MICROPY_HW_CAN3_TX)
-void CAN3_RX0_IRQHandler(void) {
-    IRQ_ENTER(CAN3_RX0_IRQn);
-    can_rx_irq_handler(PYB_CAN_3, CAN_FIFO0);
-    IRQ_EXIT(CAN3_RX0_IRQn);
-}
-
-void CAN3_RX1_IRQHandler(void) {
-    IRQ_ENTER(CAN3_RX1_IRQn);
-    can_rx_irq_handler(PYB_CAN_3, CAN_FIFO1);
-    IRQ_EXIT(CAN3_RX1_IRQn);
-}
-
-void CAN3_SCE_IRQHandler(void) {
-    IRQ_ENTER(CAN3_SCE_IRQn);
-    can_sce_irq_handler(PYB_CAN_3);
-    IRQ_EXIT(CAN3_SCE_IRQn);
-}
 #endif
 
 #if MICROPY_PY_PYB_LEGACY

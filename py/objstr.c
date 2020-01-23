@@ -169,7 +169,7 @@ mp_obj_t mp_obj_str_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
 
                 // Check if a qstr with this data already exists
                 qstr q = qstr_find_strn((const char*)str_data, str_len);
-                if (q != MP_QSTR_NULL) {
+                if (q != MP_QSTRnull) {
                     return MP_OBJ_NEW_QSTR(q);
                 }
 
@@ -320,7 +320,7 @@ mp_obj_t mp_obj_str_binary_op(mp_binary_op_t op, mp_obj_t lhs_in, mp_obj_t rhs_i
     }
 
     // from now on we need lhs type and data, so extract them
-    mp_obj_type_t *lhs_type = mp_obj_get_type(lhs_in);
+    const mp_obj_type_t *lhs_type = mp_obj_get_type(lhs_in);
     GET_STR_DATA_LEN(lhs_in, lhs_data, lhs_len);
 
     // check for multiply
@@ -420,7 +420,7 @@ const byte *str_index_to_ptr(const mp_obj_type_t *type, const byte *self_data, s
 
 // This is used for both bytes and 8-bit strings. This is not used for unicode strings.
 STATIC mp_obj_t bytes_subscr(mp_obj_t self_in, mp_obj_t index, mp_obj_t value) {
-    mp_obj_type_t *type = mp_obj_get_type(self_in);
+    const mp_obj_type_t *type = mp_obj_get_type(self_in);
     GET_STR_DATA_LEN(self_in, self_data, self_len);
     if (value == MP_OBJ_SENTINEL) {
         // load
@@ -1743,7 +1743,7 @@ MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(str_count_obj, 2, 4, str_count);
 #if MICROPY_PY_BUILTINS_STR_PARTITION
 STATIC mp_obj_t str_partitioner(mp_obj_t self_in, mp_obj_t arg, int direction) {
     mp_check_self(mp_obj_is_str_or_bytes(self_in));
-    mp_obj_type_t *self_type = mp_obj_get_type(self_in);
+    const mp_obj_type_t *self_type = mp_obj_get_type(self_in);
     if (self_type != mp_obj_get_type(arg)) {
         bad_implicit_conversion(arg);
     }
@@ -1913,9 +1913,6 @@ mp_int_t mp_obj_str_get_buffer(mp_obj_t self_in, mp_buffer_info_t *bufinfo, mp_u
         return 0;
     } else {
         // can't write to a string
-        bufinfo->buf = NULL;
-        bufinfo->len = 0;
-        bufinfo->typecode = -1;
         return 1;
     }
 }
@@ -2042,7 +2039,7 @@ mp_obj_t mp_obj_new_str_from_vstr(const mp_obj_type_t *type, vstr_t *vstr) {
     // if not a bytes object, look if a qstr with this data already exists
     if (type == &mp_type_str) {
         qstr q = qstr_find_strn(vstr->buf, vstr->len);
-        if (q != MP_QSTR_NULL) {
+        if (q != MP_QSTRnull) {
             vstr_clear(vstr);
             vstr->alloc = 0;
             return MP_OBJ_NEW_QSTR(q);
@@ -2067,7 +2064,7 @@ mp_obj_t mp_obj_new_str_from_vstr(const mp_obj_type_t *type, vstr_t *vstr) {
 
 mp_obj_t mp_obj_new_str(const char* data, size_t len) {
     qstr q = qstr_find_strn(data, len);
-    if (q != MP_QSTR_NULL) {
+    if (q != MP_QSTRnull) {
         // qstr with this data already exists
         return MP_OBJ_NEW_QSTR(q);
     } else {
@@ -2156,13 +2153,13 @@ const char *mp_obj_str_get_data(mp_obj_t self_in, size_t *len) {
     }
 }
 
-#if MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_C
+#if MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_C || MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_D
 const byte *mp_obj_str_get_data_no_check(mp_obj_t self_in, size_t *len) {
     if (mp_obj_is_qstr(self_in)) {
         return qstr_data(MP_OBJ_QSTR_VALUE(self_in), len);
     } else {
-        *len = ((mp_obj_str_t*)self_in)->len;
-        return ((mp_obj_str_t*)self_in)->data;
+        *len = ((mp_obj_str_t*)MP_OBJ_TO_PTR(self_in))->len;
+        return ((mp_obj_str_t*)MP_OBJ_TO_PTR(self_in))->data;
     }
 }
 #endif

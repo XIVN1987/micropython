@@ -36,6 +36,7 @@
 #include "extmod/misc.h"
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
+#include "extmod/vfs_lfs.h"
 #include "genhdr/mpversion.h"
 #include "rng.h"
 #include "usb.h"
@@ -110,7 +111,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(os_urandom_obj, os_urandom);
 #endif
 
 bool mp_uos_dupterm_is_builtin_stream(mp_const_obj_t stream) {
-    mp_obj_type_t *type = mp_obj_get_type(stream);
+    const mp_obj_type_t *type = mp_obj_get_type(stream);
     return type == &pyb_uart_type
         #if MICROPY_HW_ENABLE_USB
         || type == &pyb_usb_vcp_type
@@ -173,6 +174,12 @@ STATIC const mp_rom_map_elem_t os_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_umount), MP_ROM_PTR(&mp_vfs_umount_obj) },
     #if MICROPY_VFS_FAT
     { MP_ROM_QSTR(MP_QSTR_VfsFat), MP_ROM_PTR(&mp_fat_vfs_type) },
+    #endif
+    #if MICROPY_VFS_LFS1
+    { MP_ROM_QSTR(MP_QSTR_VfsLfs1), MP_ROM_PTR(&mp_type_vfs_lfs1) },
+    #endif
+    #if MICROPY_VFS_LFS2
+    { MP_ROM_QSTR(MP_QSTR_VfsLfs2), MP_ROM_PTR(&mp_type_vfs_lfs2) },
     #endif
 };
 
