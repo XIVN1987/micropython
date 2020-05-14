@@ -27,12 +27,13 @@ SD_CardInfo SD_cardInfo;
 /****************************************************************************************************************************************** 
 * 函数名称: SDIO_Init()
 * 功能说明:	SDIO读写SD卡初始化，初始化成高速4线模式、读写以512字节大小进行
-* 输    入: 无
-* 输    出: 无
+* 输    入: uint32_t timeout		timeout 次查询后仍没有成功则报超时失败
+* 输    出: uint32_t				SD_RES_OK 操作成功    SD_RES_ERR 操作失败    SD_RES_TIMEOUT 操作超时
 * 注意事项: 无
 ******************************************************************************************************************************************/
-uint32_t SDIO_Init(void)
+uint32_t SDIO_Init(uint32_t timeout)
 {
+	uint32_t to;
 	uint32_t resp, resps[4];
 	
 	SYS->CLKDIV &= ~SYS_CLKDIV_SDIO_Msk;
@@ -61,41 +62,44 @@ uint32_t SDIO_Init(void)
 	SDIO->IE = 0xFFFF01FF;
 	SDIO->IM = 0x00FF00FF;
 	
-	SDIO_SendCmd(SD_CMD_GO_IDLE_STATE, 0x00, SD_RESP_NO, 0, 0, 0);			//CMD0: GO_IDLE_STATE
+	SDIO_SendCmd(SD_CMD_GO_IDLE_STATE, 0x00, SD_RESP_NO, 0, 0, 0, timeout);			//CMD0: GO_IDLE_STATE
 	
 	
-	SDIO_SendCmd(SD_CMD_SEND_IF_COND, 0x1AA, SD_RESP_32b, &resp, 0, 0);		//CMD8: SEND_IF_COND, 检测工作电压、检测是否支持SD 2.0
+	SDIO_SendCmd(SD_CMD_SEND_IF_COND, 0x1AA, SD_RESP_32b, &resp, 0, 0, timeout);	//CMD8: SEND_IF_COND, 检测工作电压、检测是否支持SD 2.0
 	
 	if(resp == 0x1AA) SD_cardInfo.CardType = SDIO_STD_CAPACITY_SD_CARD_V2_0;
 	else			  SD_cardInfo.CardType = SDIO_STD_CAPACITY_SD_CARD_V1_1;
 	
-	
-	do																		//ACMD41: SD_CMD_SD_APP_OP_COND
+	to = 0;
+	do																				//ACMD41: SD_CMD_SD_APP_OP_COND
 	{
-		SDIO_SendCmd(SD_CMD_APP_CMD, 0x00, SD_RESP_32b, &resp, 0, 0);
+		SDIO_SendCmd(SD_CMD_APP_CMD, 0x00, SD_RESP_32b, &resp, 0, 0, timeout);
 		
 		if(resp != 0x120) return SD_RES_ERR;	//不是SD卡，可能是MMC卡
 		
 		if(SD_cardInfo.CardType == SDIO_STD_CAPACITY_SD_CARD_V2_0)
-			SDIO_SendCmd(SD_CMD_SD_APP_OP_COND, 0x80100000|0x40000000, SD_RESP_32b, &resp, 0, 0);
+			SDIO_SendCmd(SD_CMD_SD_APP_OP_COND, 0x80100000|0x40000000, SD_RESP_32b, &resp, 0, 0, timeout);
 		else
-			SDIO_SendCmd(SD_CMD_SD_APP_OP_COND, 0x80100000|0x00000000, SD_RESP_32b, &resp, 0, 0);
+			SDIO_SendCmd(SD_CMD_SD_APP_OP_COND, 0x80100000|0x00000000, SD_RESP_32b, &resp, 0, 0, timeout);
+		
+		if(++to > timeout)
+			return SD_RES_TIMEOUT;
 	} while(((resp >> 31) & 0x01) == 0);		//上电没完成时resp[31] == 0
 	
 	if(((resp >> 30) & 0x01) == 1) SD_cardInfo.CardType = SDIO_HIGH_CAPACITY_SD_CARD;
 	
 	
-	SDIO_SendCmd(SD_CMD_ALL_SEND_CID, 0x00, SD_RESP_128b, resps, 0, 0);		//CMD2: SD_CMD_ALL_SEND_CID，获取CID
+	SDIO_SendCmd(SD_CMD_ALL_SEND_CID, 0x00, SD_RESP_128b, resps, 0, 0, timeout);	//CMD2: SD_CMD_ALL_SEND_CID，获取CID
 	
 	parseCID(resps);
 	
 	
-	SDIO_SendCmd(SD_CMD_SET_REL_ADDR, 0x00, SD_RESP_32b, &resp, 0, 0);		//CMD3: SD_CMD_SET_REL_ADDR，设置RCA
+	SDIO_SendCmd(SD_CMD_SET_REL_ADDR, 0x00, SD_RESP_32b, &resp, 0, 0, timeout);		//CMD3: SD_CMD_SET_REL_ADDR，设置RCA
 	
 	SD_cardInfo.RCA = resp >> 16;
 	
 	
-	SDIO_SendCmd(SD_CMD_SEND_CSD, SD_cardInfo.RCA << 16, SD_RESP_128b, resps, 0, 0);	//CMD9: SD_CMD_SEND_CSD，获取CSD
+	SDIO_SendCmd(SD_CMD_SEND_CSD, SD_cardInfo.RCA << 16, SD_RESP_128b, resps, 0, 0, timeout);		//CMD9: SD_CMD_SEND_CSD，获取CSD
 	
 	parseCSD(resps);
 	
@@ -104,20 +108,20 @@ uint32_t SDIO_Init(void)
 	
 	SDIO->CR2 &= ~(SDIO_CR2_SDCLKEN_Msk | SDIO_CR2_SDCLKDIV_Msk);
 	SDIO->CR2 |= (1 << SDIO_CR2_SDCLKEN_Pos) |
-				 (calcSDCLKDiv(SD_CLK_20MHz) << SDIO_CR2_SDCLKDIV_Pos);		//初始化完成，SDCLK切换到高速
+				 (calcSDCLKDiv(SD_CLK_20MHz) << SDIO_CR2_SDCLKDIV_Pos);				//初始化完成，SDCLK切换到高速
 	
 	
-	SDIO_SendCmd(SD_CMD_SEL_DESEL_CARD, SD_cardInfo.RCA << 16, SD_RESP_32b_busy, &resp, 0, 0);	//CMD7: 选中卡，从Standy模式进入Transfer模式
+	SDIO_SendCmd(SD_CMD_SEL_DESEL_CARD, SD_cardInfo.RCA << 16, SD_RESP_32b_busy, &resp, 0, 0, timeout);	//CMD7: 选中卡，从Standy模式进入Transfer模式
 	
 	
-	SDIO_SendCmd(SD_CMD_APP_CMD, SD_cardInfo.RCA << 16, SD_RESP_32b, &resp, 0, 0);
+	SDIO_SendCmd(SD_CMD_APP_CMD, SD_cardInfo.RCA << 16, SD_RESP_32b, &resp, 0, 0, timeout);
 	
-	SDIO_SendCmd(SD_CMD_APP_SD_SET_BUSWIDTH, SD_BUSWIDTH_4b, SD_RESP_32b, &resp, 0, 0);		//切换成4位总线模式
+	SDIO_SendCmd(SD_CMD_APP_SD_SET_BUSWIDTH, SD_BUSWIDTH_4b, SD_RESP_32b, &resp, 0, 0, timeout);	//切换成4位总线模式
 	
 	SDIO->CR1 |= (1 << SDIO_CR1_4BIT_Pos);
 	
 	
-	SDIO_SendCmd(SD_CMD_SET_BLOCKLEN, 512, SD_RESP_32b, &resp, 0, 0);		//固定块大小位512字节
+	SDIO_SendCmd(SD_CMD_SET_BLOCKLEN, 512, SD_RESP_32b, &resp, 0, 0, timeout);		//固定块大小位512字节
 	
 	SDIO->BLK = 512;
 	
@@ -129,26 +133,40 @@ uint32_t SDIO_Init(void)
 * 功能说明:	向SD卡写入数据
 * 输    入: uint32_t block_addr		SD卡块地址，每块512字节
 *			uint32_t buff[]			要写入的数据
-* 输    出: 无
+*			uint32_t timeout		timeout 次查询后仍没有成功则报超时失败
+* 输    出: uint32_t				SD_RES_OK 操作成功    SD_RES_ERR 操作失败    SD_RES_TIMEOUT 操作超时
 * 注意事项: 无
 ******************************************************************************************************************************************/
-void SDIO_BlockWrite(uint32_t block_addr, uint32_t buff[])
+uint32_t SDIO_BlockWrite(uint32_t block_addr, uint32_t buff[], uint32_t timeout)
 {
+	uint32_t to;
 	uint32_t i, resp, addr;
 	
 	if(SD_cardInfo.CardType == SDIO_HIGH_CAPACITY_SD_CARD)	addr = block_addr;
 	else													addr = block_addr * 512;
 	
-	SDIO_SendCmd(SD_CMD_WRITE_SINGLE_BLOCK, addr, SD_RESP_32b, &resp, 1, 0);
+	SDIO_SendCmd(SD_CMD_WRITE_SINGLE_BLOCK, addr, SD_RESP_32b, &resp, 1, 0, timeout);
 	
-    while((SDIO->IF & SDIO_IF_BUFWRRDY_Msk) == 0);
+	to = 0;
+    while((SDIO->IF & SDIO_IF_BUFWRRDY_Msk) == 0)
+	{
+		if(++to > timeout)
+			return SD_RES_TIMEOUT;
+	}
     SDIO->IF = SDIO_IF_BUFWRRDY_Msk;		
     
     for(i = 0; i < 512/4; i++) SDIO->DATA = buff[i];
 	
 	SDIO->IF = SDIO_IF_TRXDONE_Msk;		//?? 这个必须有
-    while((SDIO->IF & SDIO_IF_TRXDONE_Msk) == 0);
+	to = 0;
+    while((SDIO->IF & SDIO_IF_TRXDONE_Msk) == 0)
+	{
+		if(++to > timeout)
+			return SD_RES_TIMEOUT;
+	}
 	SDIO->IF = SDIO_IF_TRXDONE_Msk;
+	
+	return SD_RES_OK;
 }
 
 /****************************************************************************************************************************************** 
@@ -156,41 +174,58 @@ void SDIO_BlockWrite(uint32_t block_addr, uint32_t buff[])
 * 功能说明:	从SD卡读出数据
 * 输    入: uint32_t block_addr		SD卡块地址，每块512字节
 *			uint32_t buff[]			读出的数据
-* 输    出: 无
+*			uint32_t timeout		timeout 次查询后仍没有成功则报超时失败
+* 输    出: uint32_t				SD_RES_OK 操作成功    SD_RES_ERR 操作失败    SD_RES_TIMEOUT 操作超时
 * 注意事项: 无
 ******************************************************************************************************************************************/
-void SDIO_BlockRead(uint32_t block_addr, uint32_t buff[])
+uint32_t SDIO_BlockRead(uint32_t block_addr, uint32_t buff[], uint32_t timeout)
 {
+	uint32_t to;
     uint32_t i, resp, addr;
 	
 	if(SD_cardInfo.CardType == SDIO_HIGH_CAPACITY_SD_CARD)	addr = block_addr;
 	else													addr = block_addr * 512;
 	
-	SDIO_SendCmd(SD_CMD_READ_SINGLE_BLOCK, addr, SD_RESP_32b, &resp, 1, 1);
+	SDIO_SendCmd(SD_CMD_READ_SINGLE_BLOCK, addr, SD_RESP_32b, &resp, 1, 1, timeout);
 	
-    while((SDIO->IF & SDIO_IF_BUFRDRDY_Msk) == 0);
+	to = 0;
+    while((SDIO->IF & SDIO_IF_BUFRDRDY_Msk) == 0)
+	{
+		if(++to > timeout)
+			return SD_RES_TIMEOUT;
+	}
 	SDIO->IF = SDIO_IF_BUFRDRDY_Msk;
     
     for(i = 0; i < 512/4; i++) buff[i] = SDIO->DATA;
     
-	while((SDIO->IF & SDIO_IF_TRXDONE_Msk) == 0);
+	to = 0;
+	while((SDIO->IF & SDIO_IF_TRXDONE_Msk) == 0)
+	{
+		if(++to > timeout)
+			return SD_RES_TIMEOUT;
+	}
 	SDIO->IF = SDIO_IF_TRXDONE_Msk;
+	
+	return SD_RES_OK;
 }
 
 /****************************************************************************************************************************************** 
 * 函数名称: SDIO_SendCmd()
 * 功能说明:	SDIO向SD卡发送命令
-* 输    入: uint32_t cmd				命令索引
-*			uint32_t arg				命令参数
-*			uint32_t resp_type			响应类型，取值SD_RESP_NO、SD_RESP_32b、SD_RESP_128b、SD_RESP_32b_busy
-*			uint32_t *resp_data			响应内容
-*			uint32_t have_data			是否有数据传输
-*			uint32_t data_read			1 读SD卡    0 写SD卡
-* 输    出: 无
+* 输    入: uint32_t cmd			命令索引
+*			uint32_t arg			命令参数
+*			uint32_t resp_type		响应类型，取值SD_RESP_NO、SD_RESP_32b、SD_RESP_128b、SD_RESP_32b_busy
+*			uint32_t *resp_data		响应内容
+*			uint32_t have_data		是否有数据传输
+*			uint32_t data_read		1 读SD卡    0 写SD卡
+*			uint32_t timeout		timeout 次查询后仍没有成功则报超时失败
+* 输    出: uint32_t				SD_RES_OK 操作成功    SD_RES_ERR 操作失败    SD_RES_TIMEOUT 操作超时
 * 注意事项: 无
 ******************************************************************************************************************************************/
-void SDIO_SendCmd(uint32_t cmd, uint32_t arg, uint32_t resp_type, uint32_t *resp_data, uint32_t have_data, uint32_t data_read)
+uint32_t SDIO_SendCmd(uint32_t cmd, uint32_t arg, uint32_t resp_type, uint32_t *resp_data, uint32_t have_data, uint32_t data_read, uint32_t timeout)
 {
+	uint32_t to;
+	
 	SDIO->ARG = arg;
 	SDIO->CMD = (cmd << SDIO_CMD_CMDINDX_Pos) |
 				(0   << SDIO_CMD_CMDTYPE_Pos) |
@@ -202,7 +237,12 @@ void SDIO_SendCmd(uint32_t cmd, uint32_t arg, uint32_t resp_type, uint32_t *resp
 				(data_read << SDIO_CMD_DIRREAD_Pos)  |
 				(0  << SDIO_CMD_BLKCNTEN_Pos);
 	
-	while((SDIO->IF & SDIO_IF_CMDDONE_Msk) == 0);
+	to = 0;
+	while((SDIO->IF & SDIO_IF_CMDDONE_Msk) == 0)
+	{
+		if(++to > timeout)
+			return SD_RES_TIMEOUT;
+	}
 	SDIO->IF = SDIO_IF_CMDDONE_Msk;
 	
 	if(resp_type == SD_RESP_32b)
@@ -218,6 +258,8 @@ void SDIO_SendCmd(uint32_t cmd, uint32_t arg, uint32_t resp_type, uint32_t *resp
 		resp_data[2] = (SDIO->RESP[1] << 8) + ((SDIO->RESP[0] >> 24) & 0xFF);
 		resp_data[3] = (SDIO->RESP[0] << 8) + 0x00;
 	}
+	
+	return SD_RES_OK;
 }
 
 

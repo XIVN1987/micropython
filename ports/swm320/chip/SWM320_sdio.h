@@ -48,6 +48,7 @@
 
 #define SD_RES_OK			0
 #define SD_RES_ERR			1
+#define SD_RES_TIMEOUT		2
 
 
 typedef struct
@@ -125,11 +126,11 @@ typedef struct
 
 extern SD_CardInfo SD_cardInfo;
 
-uint32_t SDIO_Init(void);
-void SDIO_BlockWrite(uint32_t block_addr, uint32_t buff[]);
-void SDIO_BlockRead(uint32_t block_addr, uint32_t buff[]);
+uint32_t SDIO_Init(uint32_t timeout);
+uint32_t SDIO_BlockWrite(uint32_t block_addr, uint32_t buff[], uint32_t timeout);
+uint32_t SDIO_BlockRead(uint32_t block_addr, uint32_t buff[], uint32_t timeout);
 
-void SDIO_SendCmd(uint32_t cmd, uint32_t arg, uint32_t resp_type, uint32_t *resp_data, uint32_t have_data, uint32_t data_read);
+uint32_t SDIO_SendCmd(uint32_t cmd, uint32_t arg, uint32_t resp_type, uint32_t *resp_data, uint32_t have_data, uint32_t data_read, uint32_t timeout);
 
 void parseCID(uint32_t CID_Tab[4]);
 void parseCSD(uint32_t CID_Tab[4]);

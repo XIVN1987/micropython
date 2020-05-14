@@ -36,6 +36,9 @@
 #include "lib/timeutils/timeutils.h"
 #include "extmod/utime_mphal.h"
 
+#include "mods/pybrtc.h"
+
+
 /// \module time - time related functions
 ///
 /// The `time` module provides functions for getting the current time and date,
@@ -61,8 +64,7 @@ STATIC mp_obj_t time_localtime(size_t n_args, const mp_obj_t *args) {
         timeutils_struct_time_t tm;
 
         // get the seconds from the RTC
-        //timeutils_seconds_since_2000_to_struct_time(pyb_rtc_get_seconds(), &tm);
-        timeutils_seconds_since_2000_to_struct_time(100000, &tm);
+        timeutils_seconds_since_2000_to_struct_time(rtc_get_seconds(), &tm);
         mp_obj_t tuple[8] = {
                 mp_obj_new_int(tm.tm_year),
                 mp_obj_new_int(tm.tm_mon),

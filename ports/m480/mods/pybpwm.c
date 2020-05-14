@@ -1,30 +1,3 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013, 2014 Damien P. George
- * Copyright (c) 2015 Daniel Campora
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdio.h>
 #include <string.h>
 
@@ -38,22 +11,24 @@
 #include "mods/pybpwm.h"
 
 
-#define PYB_NUM_CHANNELS    6
-
-
 /// \moduleref pyb
 /// \class PWM - Pulse-Width Modulation
 
+#define PWM_NUM_CHANNELS    6
+
+/******************************************************************************
+ DEFINE TYPES
+ ******************************************************************************/
 typedef enum {
-    PYB_BPWM_0    =  0,
-    PYB_BPWM_1    =  1,
-    PYB_EPWM_0    =  2,
-    PYB_EPWM_1    =  3,
+    PYB_BPWM_0   =  0,
+    PYB_BPWM_1   =  1,
+    PYB_EPWM_0   =  2,
+    PYB_EPWM_1   =  3,
     PYB_NUM_PWMS
 } pyb_pwm_id_t;
 
 
-typedef struct _pyb_pwm_obj_t {
+typedef struct {
     mp_obj_base_t base;
     pyb_pwm_id_t pwm_id;
     union {
@@ -63,13 +38,13 @@ typedef struct _pyb_pwm_obj_t {
     uint16_t clkdiv;
     union {
         uint16_t Bperiod;
-        uint16_t Eperiod[PYB_NUM_CHANNELS];
+        uint16_t Eperiod[PWM_NUM_CHANNELS];
     };
-    uint16_t duty[PYB_NUM_CHANNELS];
+    uint16_t duty[PWM_NUM_CHANNELS];
     uint16_t chn_enabled;
 
-    bool complementary[PYB_NUM_CHANNELS];
-    uint16_t deadzone[PYB_NUM_CHANNELS];
+    bool complementary[PWM_NUM_CHANNELS];
+    uint16_t deadzone[PWM_NUM_CHANNELS];
 } pyb_pwm_obj_t;
 
 
@@ -77,45 +52,77 @@ typedef struct _pyb_pwm_obj_t {
  DECLARE PRIVATE DATA
  ******************************************************************************/
 STATIC pyb_pwm_obj_t pyb_pwm_obj[PYB_NUM_PWMS] = {
-    { .pwm_id = PYB_BPWM_0, .BPWMx = BPWM0 },
-    { .pwm_id = PYB_BPWM_1, .BPWMx = BPWM1 },
-    { .pwm_id = PYB_EPWM_0, .EPWMx = EPWM0 },
-    { .pwm_id = PYB_EPWM_1, .EPWMx = EPWM1 },
+    { {&pyb_pwm_type}, .pwm_id = PYB_BPWM_0, .BPWMx = BPWM0 },
+    { {&pyb_pwm_type}, .pwm_id = PYB_BPWM_1, .BPWMx = BPWM1 },
+    { {&pyb_pwm_type}, .pwm_id = PYB_EPWM_0, .EPWMx = EPWM0 },
+    { {&pyb_pwm_type}, .pwm_id = PYB_EPWM_1, .EPWMx = EPWM1 },
 };
+
+
+/******************************************************************************
+ DEFINE PRIVATE FUNCTIONS
+ ******************************************************************************/
+STATIC uint parse_chns(mp_obj_t chns_in)
+{
+    uint len;
+    mp_obj_t *items;
+    uint chns = 0x00;
+
+    mp_obj_get_array(chns_in, &len, &items);
+
+    for(uint i = 0; i < len; i++)
+    {
+        if(mp_obj_is_int(items[i]))
+        {
+            chns |= (1 << mp_obj_get_int(items[i]));
+        }
+        else
+        {
+            mp_raise_TypeError("chns invalid");
+        }
+    }
+    if(chns > 0x3F)
+    {
+        mp_raise_ValueError("chns invalid");
+    }
+    
+    return chns;
+}
 
 
 /******************************************************************************/
 /* MicroPython bindings                                                      */
 /******************************************************************************/
-STATIC void pyb_pwm_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
+STATIC void pwm_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind)
+{
     pyb_pwm_obj_t *self = self_in;
 
     if(self->pwm_id < PYB_EPWM_0)
     {
         mp_printf(print, "PWM(%u, clkdiv=%u, period=%u)", self->pwm_id, self->clkdiv, self->Bperiod);
-        for(uint i = 0; i < PYB_NUM_CHANNELS; i++)
+        for(uint i = 0; i < PWM_NUM_CHANNELS; i++)
         {
             if(self->chn_enabled & (1 << i))
             {
-                mp_printf(print, "    CH%u(duty=%u", i, self->duty[i]);
+                mp_printf(print, "\n    CH%u(duty=%u)", i, self->duty[i]);
             }
         }
     }
     else
     {
         mp_printf(print, "PWM(%u, clkdiv=%u)", self->pwm_id, self->clkdiv);
-        for(uint i = 0; i < PYB_NUM_CHANNELS; i++)
+        for(uint i = 0; i < PWM_NUM_CHANNELS; i++)
         {
             if(self->chn_enabled & (1 << i))
             {
                 if(self->complementary[i])
                 {
-                    mp_printf(print, "    CH%u(period=%u, duty=%u, deadzone=%u", i, self->Eperiod[i], self->duty[i], self->deadzone[i]);
+                    mp_printf(print, "\n    CH%u(period=%u, duty=%u, deadzone=%u)", i, self->Eperiod[i], self->duty[i], self->deadzone[i]);
                     i += 1;
                 }
                 else
                 {
-                    mp_printf(print, "    CH%u(period=%u, duty=%u", i, self->Eperiod[i], self->duty[i]);
+                    mp_printf(print, "\n    CH%u(period=%u, duty=%u)", i, self->Eperiod[i], self->duty[i]);
                 }
             }
         }
@@ -123,8 +130,10 @@ STATIC void pyb_pwm_print(const mp_print_t *print, mp_obj_t self_in, mp_print_ki
 }
 
 
-STATIC mp_obj_t pyb_pwm_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
-    STATIC const mp_arg_t allowed_args[] = {
+STATIC mp_obj_t pwm_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args)
+{
+    enum { ARG_id, ARG_clkdiv, ARG_period };
+    const mp_arg_t allowed_args[] = {
         { MP_QSTR_id,     MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_clkdiv, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 192} },
         { MP_QSTR_period, MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 1000} },
@@ -136,24 +145,22 @@ STATIC mp_obj_t pyb_pwm_make_new(const mp_obj_type_t *type, size_t n_args, size_
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    uint pwm_id = args[0].u_int;
+    uint pwm_id = args[ARG_id].u_int;
     if(pwm_id >= PYB_NUM_PWMS) {
         mp_raise_OSError(MP_ENODEV);
     }
-
     pyb_pwm_obj_t *self = &pyb_pwm_obj[pwm_id];
-    self->base.type = &pyb_pwm_type;
 
-    self->clkdiv = args[1].u_int;
+    self->clkdiv = args[ARG_clkdiv].u_int;
     if(self->clkdiv > 0x10000)
     {
-        goto invalid_args;
+        mp_raise_ValueError("invalid clkdiv value");
     }
 
-    self->Bperiod = args[2].u_int;
+    self->Bperiod = args[ARG_period].u_int;
     if(self->Bperiod > 0x10000)
     {
-        goto invalid_args;
+        mp_raise_ValueError("invalid period value");
     }
 
     switch(self->pwm_id) {
@@ -176,9 +183,6 @@ STATIC mp_obj_t pyb_pwm_make_new(const mp_obj_type_t *type, size_t n_args, size_
         CLK_EnableModuleClock(EPWM1_MODULE);
         CLK_SetModuleClock(EPWM1_MODULE, CLK_CLKSEL2_EPWM1SEL_PCLK1, 0);
         break;
-
-    default:
-        break;
     }
 
     if(self->pwm_id < PYB_EPWM_0)
@@ -186,11 +190,9 @@ STATIC mp_obj_t pyb_pwm_make_new(const mp_obj_type_t *type, size_t n_args, size_
         self->BPWMx->CTL1 = BPWM_UP_COUNTER;
 
         self->BPWMx->CLKSRC = BPWM_CLKSRC_BPWM_CLK;
-        self->BPWMx->CLKPSC = self->clkdiv;
+        self->BPWMx->CLKPSC = self->clkdiv - 1;
 
         self->BPWMx->PERIOD = self->Bperiod;
-
-        BPWM_SET_OUTPUT_LEVEL(self->BPWMx, 0x3F, BPWM_OUTPUT_NOTHING, BPWM_OUTPUT_LOW, BPWM_OUTPUT_HIGH, BPWM_OUTPUT_NOTHING);
     }
     else
     {
@@ -198,49 +200,46 @@ STATIC mp_obj_t pyb_pwm_make_new(const mp_obj_type_t *type, size_t n_args, size_
                             (EPWM_UP_COUNTER << EPWM_CTL1_CNTTYPE3_Pos) | (EPWM_UP_COUNTER << EPWM_CTL1_CNTTYPE4_Pos) | (EPWM_UP_COUNTER << EPWM_CTL1_CNTTYPE5_Pos);
 
         self->EPWMx->CLKSRC = (EPWM_CLKSRC_EPWM_CLK << EPWM_CLKSRC_ECLKSRC0_Pos) | (EPWM_CLKSRC_EPWM_CLK << EPWM_CLKSRC_ECLKSRC2_Pos) | (EPWM_CLKSRC_EPWM_CLK << EPWM_CLKSRC_ECLKSRC4_Pos);
-        self->EPWMx->CLKPSC[0] = self->clkdiv;
-        self->EPWMx->CLKPSC[1] = self->clkdiv;
-        self->EPWMx->CLKPSC[2] = self->clkdiv;
-
-        EPWM_SET_OUTPUT_LEVEL(self->EPWMx, 0x3F, EPWM_OUTPUT_NOTHING, EPWM_OUTPUT_LOW, EPWM_OUTPUT_HIGH, EPWM_OUTPUT_NOTHING);
+        self->EPWMx->CLKPSC[0] = self->clkdiv - 1;
+        self->EPWMx->CLKPSC[1] = self->clkdiv - 1;
+        self->EPWMx->CLKPSC[2] = self->clkdiv - 1;
     }
 
     return self;
-
-invalid_args:
-    mp_raise_ValueError("invalid argument(s) value");
 }
 
 
-STATIC mp_obj_t pyb_pwm_chn_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_chn, ARG_duty, ARG_period, ARG_complementary, ARG_deadzone, ARG_pin, ARG_pinN };
-    STATIC const mp_arg_t allowed_args[] = {
+STATIC mp_obj_t pwm_channel(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
+{
+    enum { ARG_chn, ARG_duty, ARG_period, ARG_deadzone, ARG_pin, ARG_pinN };
+    const mp_arg_t allowed_args[] = {
         { MP_QSTR_chn,           MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_duty,          MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 500} },
         { MP_QSTR_period,        MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 1000} },
-        { MP_QSTR_complementary, MP_ARG_KW_ONLY  | MP_ARG_BOOL,{.u_bool=false} },
-        { MP_QSTR_deadzone,      MP_ARG_KW_ONLY  | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_deadzone,      MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
         { MP_QSTR_pin,           MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
         { MP_QSTR_pinN,          MP_ARG_KW_ONLY  | MP_ARG_OBJ, {.u_obj = mp_const_none} },
     };
 
     // parse args
-    pyb_pwm_obj_t *self = pos_args[0];
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
+    pyb_pwm_obj_t *self = pos_args[0];
+
     uint chn = args[ARG_chn].u_int;
-    if(chn > PYB_NUM_CHANNELS)
+    if(chn >= PWM_NUM_CHANNELS)
     {
-        goto invalid_args;
+        mp_raise_OSError(MP_ENODEV);
     }
 
     if(self->pwm_id < PYB_EPWM_0)
     {
         self->duty[chn] = args[ARG_duty].u_int;
-        BPWM_SET_CMR(self->BPWMx, chn, self->duty[chn]);
+        self->BPWMx->CMPDAT[chn] = self->duty[chn];
 
-        BPWM_EnableOutput(self->BPWMx, 1 << chn);
+        BPWM_EnableOutput(self->BPWMx, (1 << chn));
+        BPWM_SET_OUTPUT_LEVEL(self->BPWMx, (1 << chn), BPWM_OUTPUT_HIGH, BPWM_OUTPUT_LOW, BPWM_OUTPUT_NOTHING, BPWM_OUTPUT_NOTHING);
 
         if(args[ARG_pin].u_obj != mp_const_none)
         {
@@ -253,12 +252,13 @@ STATIC mp_obj_t pyb_pwm_chn_config(size_t n_args, const mp_obj_t *pos_args, mp_m
     else
     {
         self->Eperiod[chn] = args[ARG_period].u_int;
-        EPWM_SET_CNR(self->EPWMx, chn, self->Eperiod[chn]);
+        self->EPWMx->PERIOD[chn] = self->Eperiod[chn];
 
         self->duty[chn] = args[ARG_duty].u_int;
-        EPWM_SET_CMR(self->EPWMx, chn, self->duty[chn]);
+        self->EPWMx->CMPDAT[chn] = self->duty[chn];
 
         EPWM_EnableOutput(self->EPWMx, (1 << chn));
+        EPWM_SET_OUTPUT_LEVEL(self->EPWMx, (1 << chn), BPWM_OUTPUT_HIGH, BPWM_OUTPUT_LOW, BPWM_OUTPUT_NOTHING, BPWM_OUTPUT_NOTHING);
 
         if(args[ARG_pin].u_obj != mp_const_none)
         {
@@ -268,8 +268,19 @@ STATIC mp_obj_t pyb_pwm_chn_config(size_t n_args, const mp_obj_t *pos_args, mp_m
                 pin_config_by_func(args[ARG_pin].u_obj, "%s_EPWM1_CH%u", chn);
         }
 
-        self->complementary[chn] = args[ARG_complementary].u_bool;
-        self->deadzone[chn] = args[ARG_deadzone].u_int;
+        if(args[ARG_deadzone].u_obj != mp_const_none)
+        {
+            if((chn % 2) == 1)
+                mp_raise_ValueError("only CH0, CH2 and CH4 can be complementary mode");
+
+            self->deadzone[chn] = mp_obj_get_int(args[ARG_deadzone].u_obj);
+
+            self->complementary[chn] = true;
+        }
+        else
+        {
+            self->complementary[chn] = false;
+        }
 
         if(self->complementary[chn])
         {
@@ -283,8 +294,10 @@ STATIC mp_obj_t pyb_pwm_chn_config(size_t n_args, const mp_obj_t *pos_args, mp_m
 
             EPWM_EnableOutput(self->EPWMx, (1 << (chn + 1)));
 
+            SYS_UnlockReg();
             EPWM_SET_DEADZONE_CLK_SRC(self->EPWMx, chn, true);
             EPWM_EnableDeadZone(self->EPWMx, chn, self->deadzone[chn]);
+            SYS_LockReg();
 
             if(args[ARG_pinN].u_obj != mp_const_none)
             {
@@ -295,16 +308,16 @@ STATIC mp_obj_t pyb_pwm_chn_config(size_t n_args, const mp_obj_t *pos_args, mp_m
             }
         }
     }
+    
+    self->chn_enabled |= (1 << chn);
 
     return mp_const_none;
-
-invalid_args:
-    mp_raise_ValueError("invalid argument(s) value");
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_pwm_chn_config_obj, 2, pyb_pwm_chn_config);
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pwm_channel_obj, 2, pwm_channel);
 
 
-STATIC mp_obj_t pyb_pwm_start(size_t n_args, const mp_obj_t *args) {
+STATIC mp_obj_t pwm_start(size_t n_args, const mp_obj_t *args)
+{
     pyb_pwm_obj_t *self = args[0];
 
     if(self->pwm_id < PYB_EPWM_0)
@@ -315,20 +328,25 @@ STATIC mp_obj_t pyb_pwm_start(size_t n_args, const mp_obj_t *args) {
     {
         if(n_args == 1)
         {
-            self->EPWMx->CNTEN = self->chn_enabled;
+            self->EPWMx->CNTCLR = self->chn_enabled;
+            self->EPWMx->CNTEN |= self->chn_enabled;
         }
         else
         {
-            self->EPWMx->CNTEN = mp_obj_get_int(args[1]);
+            uint chn_mask = parse_chns(args[1]);
+            
+            self->EPWMx->CNTCLR = chn_mask;
+            self->EPWMx->CNTEN |= chn_mask;
         }
     }
 
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_pwm_start_obj, 1, 2, pyb_pwm_start);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pwm_start_obj, 1, 2, pwm_start);
 
 
-STATIC mp_obj_t pyb_pwm_stop(size_t n_args, const mp_obj_t *args) {
+STATIC mp_obj_t pwm_stop(size_t n_args, const mp_obj_t *args)
+{
     pyb_pwm_obj_t *self = args[0];
 
     if(self->pwm_id < PYB_EPWM_0)
@@ -343,16 +361,17 @@ STATIC mp_obj_t pyb_pwm_stop(size_t n_args, const mp_obj_t *args) {
         }
         else
         {
-            self->EPWMx->CNTEN &= ~mp_obj_get_int(args[1]);
+            self->EPWMx->CNTEN &= ~parse_chns(args[1]);
         }
     }
 
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_pwm_stop_obj, 1, 2, pyb_pwm_stop);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pwm_stop_obj, 1, 2, pwm_stop);
 
 
-STATIC mp_obj_t pyb_pwm_period(size_t n_args, const mp_obj_t *args) {
+STATIC mp_obj_t pwm_period(size_t n_args, const mp_obj_t *args)
+{
     pyb_pwm_obj_t *self = args[0];
 
     if(self->pwm_id < PYB_EPWM_0)
@@ -386,10 +405,11 @@ STATIC mp_obj_t pyb_pwm_period(size_t n_args, const mp_obj_t *args) {
 
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_pwm_period_obj, 1, 3, pyb_pwm_period);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pwm_period_obj, 1, 3, pwm_period);
 
 
-STATIC mp_obj_t pyb_pwm_duty(size_t n_args, const mp_obj_t *args) {
+STATIC mp_obj_t pwm_duty(size_t n_args, const mp_obj_t *args)
+{
     pyb_pwm_obj_t *self = args[0];
 
     uint chn = mp_obj_get_int(args[1]);
@@ -407,10 +427,11 @@ STATIC mp_obj_t pyb_pwm_duty(size_t n_args, const mp_obj_t *args) {
         return mp_const_none;
     }
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_pwm_duty_obj, 2, 3, pyb_pwm_duty);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pwm_duty_obj, 2, 3, pwm_duty);
 
 
-STATIC mp_obj_t pyb_pwm_deadzone(size_t n_args, const mp_obj_t *args) {
+STATIC mp_obj_t pwm_deadzone(size_t n_args, const mp_obj_t *args)
+{
     pyb_pwm_obj_t *self = args[0];
 
     if(self->pwm_id < PYB_EPWM_0) return mp_const_none;
@@ -424,40 +445,47 @@ STATIC mp_obj_t pyb_pwm_deadzone(size_t n_args, const mp_obj_t *args) {
     else // if(n_args == 3)
     {
         self->deadzone[chn] = mp_obj_get_int(args[2]);
-
+        
+        SYS_UnlockReg();
         EPWM_EnableDeadZone(self->EPWMx, chn, self->deadzone[chn]);
-
+        SYS_LockReg();
+        
         return mp_const_none;
     }
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_pwm_deadzone_obj, 2, 3, pyb_pwm_deadzone);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pwm_deadzone_obj, 2, 3, pwm_deadzone);
 
 
-STATIC const mp_rom_map_elem_t pyb_pwm_locals_dict_table[] = {
+STATIC const mp_rom_map_elem_t pwm_locals_dict_table[] = {
     // instance methods
-    { MP_ROM_QSTR(MP_QSTR_chn_config),          MP_ROM_PTR(&pyb_pwm_chn_config_obj) },
-    { MP_ROM_QSTR(MP_QSTR_start),               MP_ROM_PTR(&pyb_pwm_start_obj) },
-    { MP_ROM_QSTR(MP_QSTR_stop),                MP_ROM_PTR(&pyb_pwm_stop_obj) },
-    { MP_ROM_QSTR(MP_QSTR_period),              MP_ROM_PTR(&pyb_pwm_period_obj) },
-    { MP_ROM_QSTR(MP_QSTR_duty),                MP_ROM_PTR(&pyb_pwm_duty_obj) },
-    { MP_ROM_QSTR(MP_QSTR_deadzone),            MP_ROM_PTR(&pyb_pwm_deadzone_obj) },
+    { MP_ROM_QSTR(MP_QSTR_channel),       MP_ROM_PTR(&pwm_channel_obj) },
+    { MP_ROM_QSTR(MP_QSTR_start),         MP_ROM_PTR(&pwm_start_obj) },
+    { MP_ROM_QSTR(MP_QSTR_stop),          MP_ROM_PTR(&pwm_stop_obj) },
+    { MP_ROM_QSTR(MP_QSTR_period),        MP_ROM_PTR(&pwm_period_obj) },
+    { MP_ROM_QSTR(MP_QSTR_duty),          MP_ROM_PTR(&pwm_duty_obj) },
+    { MP_ROM_QSTR(MP_QSTR_deadzone),      MP_ROM_PTR(&pwm_deadzone_obj) },
 
     // class constants
-    { MP_ROM_QSTR(MP_QSTR_CH_0),                MP_ROM_INT(0) },
-    { MP_ROM_QSTR(MP_QSTR_CH_1),                MP_ROM_INT(1) },
-    { MP_ROM_QSTR(MP_QSTR_CH_2),                MP_ROM_INT(2) },
-    { MP_ROM_QSTR(MP_QSTR_CH_3),                MP_ROM_INT(3) },
-    { MP_ROM_QSTR(MP_QSTR_CH_4),                MP_ROM_INT(4) },
-    { MP_ROM_QSTR(MP_QSTR_CH_5),                MP_ROM_INT(5) },
+    { MP_ROM_QSTR(MP_QSTR_BPWM0),         MP_ROM_INT(0) },
+    { MP_ROM_QSTR(MP_QSTR_BPWM1),         MP_ROM_INT(1) },
+    { MP_ROM_QSTR(MP_QSTR_EPWM0),         MP_ROM_INT(2) },
+    { MP_ROM_QSTR(MP_QSTR_EPWM1),         MP_ROM_INT(3) },
+
+    { MP_ROM_QSTR(MP_QSTR_CH0),           MP_ROM_INT(0) },
+    { MP_ROM_QSTR(MP_QSTR_CH1),           MP_ROM_INT(1) },
+    { MP_ROM_QSTR(MP_QSTR_CH2),           MP_ROM_INT(2) },
+    { MP_ROM_QSTR(MP_QSTR_CH3),           MP_ROM_INT(3) },
+    { MP_ROM_QSTR(MP_QSTR_CH4),           MP_ROM_INT(4) },
+    { MP_ROM_QSTR(MP_QSTR_CH5),           MP_ROM_INT(5) },
 };
 
-STATIC MP_DEFINE_CONST_DICT(pyb_pwm_locals_dict, pyb_pwm_locals_dict_table);
+STATIC MP_DEFINE_CONST_DICT(pwm_locals_dict, pwm_locals_dict_table);
 
 
 const mp_obj_type_t pyb_pwm_type = {
     { &mp_type_type },
     .name = MP_QSTR_PWM,
-    .print = pyb_pwm_print,
-    .make_new = pyb_pwm_make_new,
-    .locals_dict = (mp_obj_t)&pyb_pwm_locals_dict,
+    .print = pwm_print,
+    .make_new = pwm_make_new,
+    .locals_dict = (mp_obj_t)&pwm_locals_dict,
 };

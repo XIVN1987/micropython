@@ -13,11 +13,11 @@
 
 typedef struct {
 	uint16_t Year;
-	uint8_t  Month;
-	uint8_t  Date;
-	uint8_t  Hour;
-	uint8_t  Minute;
-	uint8_t  Second;
+	uint8_t  Month;			//取值1--12
+	uint8_t  Date;			//取值1--31
+	uint8_t  Hour;			//取值0--23
+	uint8_t  Minute;		//取值0--59
+	uint8_t  Second;		//取值0--59
 	uint8_t  SecondIEn;
 	uint8_t  MinuteIEn;
 } RTC_InitStructure;
@@ -45,6 +45,7 @@ void RTC_Start(RTC_TypeDef * RTCx);
 void RTC_Stop(RTC_TypeDef * RTCx);
 
 void RTC_GetDateTime(RTC_TypeDef * RTCx, RTC_DateTime * dateTime);
+void RTC_SetDateTime(RTC_TypeDef * RTCx, RTC_DateTime * dateTime);
 
 void RTC_AlarmSetup(RTC_TypeDef * RTCx, RTC_AlarmStructure * alarmStruct);
 

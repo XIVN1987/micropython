@@ -27,49 +27,41 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
 
-#include "py/mpconfig.h"
-#include "py/stackctrl.h"
-#include "py/mphal.h"
+
 #include "py/obj.h"
 #include "py/runtime.h"
 #include "py/gc.h"
-#include "mpirq.h"
+#include "misc/gccollect.h"
+#include "py/stackctrl.h"
+
 #include "mperror.h"
-#include "task.h"
-#include "gchelper.h"
+
+#include "lib/utils/gchelper.h"
 #include "lib/utils/pyexec.h"
 #include "lib/mp-readline/readline.h"
-#include "gccollect.h"
 
-#include "py/compile.h"
-#include "py/runtime.h"
-#include "py/repl.h"
 #include "lib/utils/pyexec.h"
 
-
-#include "lib/oofatfs/ff.h"
-#include "lib/oofatfs/diskio.h"
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
 
-#include "pybuart.h"
-#include "pybflash.h"
+#include "mods/pybuart.h"
+#include "mods/pybflash.h"
+
+#include "task.h"
 
 
 static const char fresh_main_py[] = "# main.py -- put your code here!\r\n";
 static const char fresh_boot_py[] = "# boot.py -- run on boot-up\r\n"
                                     "# can run arbitrary Python, but best to keep it minimal\r\n"
-                                    #if MICROPY_STDIO_UART
                                     "import os, machine\r\n"
                                     "os.dupterm(machine.UART(1, 115200))\r\n"
-                                    #endif
                                     ;
 
 
 void TASK_MicroPython (void *pvParameters);
-STATIC void init_sflash_filesystem (void);
+STATIC void init_spiflash_filesystem (void);
 
 // This is the static memory (TCB and stack) for the idle task
 static StaticTask_t xIdleTaskTCB;
@@ -125,13 +117,12 @@ soft_reset:
     mp_obj_list_init(mp_sys_argv, 0);
     mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR_)); // current dir (or base dir of the script)
 
-    mp_irq_init0();
     mperror_init0();
     uart_init0();
     readline_init0();
 
     // initialize the serial flash file system
-    init_sflash_filesystem();
+    init_spiflash_filesystem();
 
     // append the flash paths to the system path
     mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR__slash_flash));
@@ -172,29 +163,28 @@ soft_reset:
     }
 
 soft_reset_exit:
-    mp_printf(&mp_plat_print, "PYB: soft reboot\n");
+    while(1)
+    {
 
-    mp_hal_delay_ms(20);
-
-    goto soft_reset;
+    }
 }
 
 fs_user_mount_t _vfs_fat;
 
-STATIC void init_sflash_filesystem (void) {
+STATIC void init_spiflash_filesystem (void) {
     FILINFO fno;
 
     // Initialise the local flash filesystem.
     // init the vfs object
     fs_user_mount_t *vfs_fat = &_vfs_fat;
-    vfs_fat->flags = 0;
+    vfs_fat->blockdev.flags = 0;
     pyb_flash_init_vfs(vfs_fat);
 
     // Create it if needed, and mount in on /flash.
     FRESULT res = f_mount(&vfs_fat->fatfs);
     if (res == FR_NO_FILESYSTEM) {
         // no filesystem, so create a fresh one
-        uint8_t working_buf[_MAX_SS];
+        uint8_t working_buf[FF_MAX_SS];
         res = f_mkfs(&vfs_fat->fatfs, FM_FAT | FM_SFD, 0, working_buf, sizeof(working_buf));
         if (res != FR_OK) {
             __fatal_error("failed to create /flash");

@@ -35,17 +35,20 @@
 
 #include "pybpin.h"
 
+#define PIN_BIT_BAND(GPIOx, pin) (volatile uint32_t *)(0x42000000 + ((uint32_t)&GPIOx->DATA - 0x40000000)*32 + pin*4)
 
-#define PIN(_name, _port, _pbit) \
+#define PIN(_name, _port, _pbit, _preg, _IRQn) \
 { \
     { &pin_type }, \
-    .name        = MP_QSTR_ ## _name, \
-    .port        = (_port), \
-    .pbit        = (_pbit), \
-    .alt         = 0, \
-    .dir         = 0, \
-    .mode        = 0, \
-    .priority    = 0, \
-    .callback    = 0, \
+    .name         = MP_QSTR_ ## _name, \
+    .port         = (_port), \
+    .pbit         = (_pbit), \
+    .preg         = (_preg), \
+    .alt          = 0, \
+    .dir          = 0, \
+    .pull         = 0, \
+    .IRQn         = (_IRQn), \
+    .irq_trigger  = 0, \
+    .irq_priority = 0, \
+    .irq_callback = 0, \
 }
-

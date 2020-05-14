@@ -62,8 +62,18 @@ void UART_Init(UART_TypeDef * UARTx, UART_InitStructure * initStruct)
 				   (initStruct->Parity   << UART_CTRL_PARITY_Pos) |
 				   (initStruct->StopBits << UART_CTRL_STOP2b_Pos);
 	
+	/* 在SWM320中，当 RXLVL >= RXTHR 时触发中断，如果RXTHR设置为0的话，在未接收到数据时就会一直触发中断；
+	   其他芯片中，当 RXLVL >  RXTHR 时触发中断，为解决SWM320中RXTHR不能为0的问题，并统一库函数API，这里将RXTHR设置值加一
+	*/
+    switch((uint32_t)UARTx)  // 软件复位不能清零 NVIC 寄存器，若不手动清除，下面的代码清零 RXTHR 时会导致一直进入 ISR
+    {
+    case ((uint32_t)UART0):  NVIC_DisableIRQ(UART0_IRQn);  break;
+    case ((uint32_t)UART1):  NVIC_DisableIRQ(UART1_IRQn);  break;
+    case ((uint32_t)UART2):  NVIC_DisableIRQ(UART2_IRQn);  break;
+    case ((uint32_t)UART3):  NVIC_DisableIRQ(UART3_IRQn);  break;
+    }
 	UARTx->FIFO &= ~(UART_FIFO_RXTHR_Msk | UART_FIFO_TXTHR_Msk);
-	UARTx->FIFO |= (initStruct->RXThreshold << UART_FIFO_RXTHR_Pos) | 
+	UARTx->FIFO |= ((initStruct->RXThreshold + 1) << UART_FIFO_RXTHR_Pos) | 
 				   (initStruct->TXThreshold << UART_FIFO_TXTHR_Pos);
 	
 	UARTx->CTRL &= ~UART_CTRL_TOTIME_Msk;
@@ -73,53 +83,53 @@ void UART_Init(UART_TypeDef * UARTx, UART_InitStructure * initStruct)
 	UARTx->CTRL |= (initStruct->RXThresholdIEn << UART_CTRL_RXIE_Pos) |
 				   (initStruct->TXThresholdIEn << UART_CTRL_TXIE_Pos) |
 				   (initStruct->TimeoutIEn << UART_CTRL_TOIE_Pos);
-	
-	switch((uint32_t)UARTx)
-	{
-	case ((uint32_t)UART0):		
-		if(initStruct->RXThresholdIEn | initStruct->TXThresholdIEn | initStruct->TimeoutIEn)
-		{
-			NVIC_EnableIRQ(UART0_IRQn);
-		}
-		else
-		{
-			NVIC_DisableIRQ(UART0_IRQn);
-		}
-		break;
-	
-	case ((uint32_t)UART1):		
-		if(initStruct->RXThresholdIEn | initStruct->TXThresholdIEn | initStruct->TimeoutIEn)
-		{
-			NVIC_EnableIRQ(UART1_IRQn);
-		}
-		else
-		{
-			NVIC_DisableIRQ(UART1_IRQn);
-		}
-		break;
-	
-	case ((uint32_t)UART2):		
-		if(initStruct->RXThresholdIEn | initStruct->TXThresholdIEn | initStruct->TimeoutIEn)
-		{
-			NVIC_EnableIRQ(UART2_IRQn);
-		}
-		else
-		{
-			NVIC_DisableIRQ(UART2_IRQn);
-		}
-		break;
-	
-	case ((uint32_t)UART3):		
-		if(initStruct->RXThresholdIEn | initStruct->TXThresholdIEn | initStruct->TimeoutIEn)
-		{
-			NVIC_EnableIRQ(UART3_IRQn);
-		}
-		else
-		{
-			NVIC_DisableIRQ(UART3_IRQn);
-		}
-		break;
-	}
+
+    switch((uint32_t)UARTx)
+    {
+    case ((uint32_t)UART0):
+        if(initStruct->RXThresholdIEn | initStruct->TXThresholdIEn | initStruct->TimeoutIEn)
+        {
+            NVIC_EnableIRQ(UART0_IRQn);
+        }
+        else
+        {
+            NVIC_DisableIRQ(UART0_IRQn);
+        }
+        break;
+
+    case ((uint32_t)UART1):
+        if(initStruct->RXThresholdIEn | initStruct->TXThresholdIEn | initStruct->TimeoutIEn)
+        {
+            NVIC_EnableIRQ(UART1_IRQn);
+        }
+        else
+        {
+            NVIC_DisableIRQ(UART1_IRQn);
+        }
+        break;
+
+    case ((uint32_t)UART2):
+        if(initStruct->RXThresholdIEn | initStruct->TXThresholdIEn | initStruct->TimeoutIEn)
+        {
+            NVIC_EnableIRQ(UART2_IRQn);
+        }
+        else
+        {
+            NVIC_DisableIRQ(UART2_IRQn);
+        }
+        break;
+
+    case ((uint32_t)UART3):
+        if(initStruct->RXThresholdIEn | initStruct->TXThresholdIEn | initStruct->TimeoutIEn)
+        {
+            NVIC_EnableIRQ(UART3_IRQn);
+        }
+        else
+        {
+            NVIC_DisableIRQ(UART3_IRQn);
+        }
+        break;
+    }
 }
 
 /****************************************************************************************************************************************** 
@@ -225,7 +235,7 @@ uint32_t UART_IsTXFIFOFull(UART_TypeDef * UARTx)
 void UART_SetBaudrate(UART_TypeDef * UARTx, uint32_t baudrate)
 {
 	UARTx->BAUD &= ~UART_BAUD_BAUD_Msk;
-	UARTx->BAUD |= ((SystemCoreClock/16/baudrate) << UART_BAUD_BAUD_Pos);
+	UARTx->BAUD |= ((SystemCoreClock/16/baudrate - 1) << UART_BAUD_BAUD_Pos);
 }
 
 /****************************************************************************************************************************************** 
@@ -237,7 +247,7 @@ void UART_SetBaudrate(UART_TypeDef * UARTx, uint32_t baudrate)
 ******************************************************************************************************************************************/
 uint32_t UART_GetBaudrate(UART_TypeDef * UARTx)
 {
-	return (UARTx->BAUD & UART_BAUD_BAUD_Msk);
+	return SystemCoreClock/16/(((UARTx->BAUD & UART_BAUD_BAUD_Msk) >> UART_BAUD_BAUD_Pos) + 1);
 }
 
 /****************************************************************************************************************************************** 
@@ -335,7 +345,7 @@ void UART_LINGenerate(UART_TypeDef * UARTx)
 ******************************************************************************************************************************************/
 uint32_t UART_LINIsDetected(UART_TypeDef * UARTx)
 {
-	return (UARTx->LINCR & UART_LINCR_BRKDETIE_Msk) ? 1 : 0;
+	return (UARTx->LINCR & UART_LINCR_BRKDETIF_Msk) ? 1 : 0;
 }
 
 /****************************************************************************************************************************************** 

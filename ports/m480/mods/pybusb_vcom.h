@@ -1,5 +1,5 @@
-#ifndef __USBD_CDC_H__
-#define __USBD_CDC_H__
+#ifndef __MODS_PYBUSB_VCOM_H__
+#define __MODS_PYBUSB_VCOM_H__
 
 /* Define the vendor id and product id */
 #define USBD_VID    0x0416

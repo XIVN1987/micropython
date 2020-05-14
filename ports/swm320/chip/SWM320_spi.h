@@ -50,9 +50,11 @@ uint32_t SPI_IsTXEmpty(SPI_TypeDef * SPIx);				//发送FIFO是否空
 
 void SPI_INTRXHalfFullEn(SPI_TypeDef * SPIx);
 void SPI_INTRXHalfFullDis(SPI_TypeDef * SPIx);
+void SPI_INTRXHalfFullClr(SPI_TypeDef * SPIx);
 uint32_t SPI_INTRXHalfFullStat(SPI_TypeDef * SPIx);
 void SPI_INTRXFullEn(SPI_TypeDef * SPIx);
 void SPI_INTRXFullDis(SPI_TypeDef * SPIx);
+void SPI_INTRXFullClr(SPI_TypeDef * SPIx);
 uint32_t SPI_INTRXFullStat(SPI_TypeDef * SPIx);
 void SPI_INTRXOverflowEn(SPI_TypeDef * SPIx);
 void SPI_INTRXOverflowDis(SPI_TypeDef * SPIx);
@@ -61,9 +63,11 @@ uint32_t SPI_INTRXOverflowStat(SPI_TypeDef * SPIx);
 
 void SPI_INTTXHalfFullEn(SPI_TypeDef * SPIx);
 void SPI_INTTXHalfFullDis(SPI_TypeDef * SPIx);
+void SPI_INTTXHalfFullClr(SPI_TypeDef * SPIx);
 uint32_t SPI_INTTXHalfFullStat(SPI_TypeDef * SPIx);
 void SPI_INTTXEmptyEn(SPI_TypeDef * SPIx);
 void SPI_INTTXEmptyDis(SPI_TypeDef * SPIx);
+void SPI_INTTXEmptyClr(SPI_TypeDef * SPIx);
 uint32_t SPI_INTTXEmptyStat(SPI_TypeDef * SPIx);
 void SPI_INTTXCompleteEn(SPI_TypeDef * SPIx);
 void SPI_INTTXCompleteDis(SPI_TypeDef * SPIx);

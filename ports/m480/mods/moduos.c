@@ -1,30 +1,3 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013, 2014 Damien P. George
- * Copyright (c) 2015 Daniel Campora
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdint.h>
 #include <string.h>
 
@@ -46,6 +19,7 @@
 #include "mods/pybusb.h"
 #include "mods/pybuart.h"
 
+
 /// \module os - basic "operating system" services
 ///
 /// The `os` module contains functions for filesystem access and `urandom`.
@@ -56,11 +30,6 @@
 ///     /flash      -- the flash filesystem
 ///
 /// On boot up, the current directory is `/flash`.
-
-/******************************************************************************
- DECLARE PRIVATE DATA
- ******************************************************************************/
-
 
 /******************************************************************************/
 // MicroPython bindings
@@ -84,30 +53,40 @@ STATIC MP_DEFINE_ATTRTUPLE(
     (mp_obj_t)&os_uname_info_machine_obj
 );
 
-STATIC mp_obj_t os_uname(void) {
+
+STATIC mp_obj_t os_uname(void)
+{
     return (mp_obj_t)&os_uname_info_obj;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(os_uname_obj, os_uname);
 
-STATIC mp_obj_t os_sync(void) {
+
+STATIC mp_obj_t os_sync(void)
+{
 //    sflash_disk_flush();
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(os_sync_obj, os_sync);
 
-STATIC mp_obj_t os_urandom(mp_obj_t num) {
+
+STATIC mp_obj_t os_urandom(mp_obj_t num)
+{
     mp_int_t n = mp_obj_get_int(num);
     vstr_t vstr;
     vstr_init_len(&vstr, n);
-    for(int i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++)
+    {
         vstr.buf[i] = rng_get();
     }
     return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(os_urandom_obj, os_urandom);
 
-bool mp_uos_dupterm_is_builtin_stream(mp_const_obj_t stream) {
-    mp_obj_type_t *type = mp_obj_get_type(stream);
+
+bool mp_uos_dupterm_is_builtin_stream(mp_const_obj_t stream)
+{
+    const mp_obj_type_t *type = mp_obj_get_type(stream);
+
     return type == &pyb_uart_type
         #if MICROPY_HW_ENABLE_USB
         || type == &pyb_usb_vcp_type
@@ -115,20 +94,28 @@ bool mp_uos_dupterm_is_builtin_stream(mp_const_obj_t stream) {
         ;
 }
 
-STATIC mp_obj_t uos_dupterm(size_t n_args, const mp_obj_t *args) {
-    if(n_args == 0) {
+
+STATIC mp_obj_t uos_dupterm(size_t n_args, const mp_obj_t *args)
+{
+    if(n_args == 0)
+    {
         return MP_STATE_VM(dupterm_objs[0]);
-    } else {
-        if(MP_OBJ_IS_TYPE(args[0], &pyb_uart_type)) {
+    }
+    else
+    {
+        if(MP_OBJ_IS_TYPE(args[0], &pyb_uart_type))
+        {
             MP_STATE_VM(dupterm_objs[0]) = args[0];
-        } else if(MP_OBJ_IS_TYPE(args[0], &pyb_usb_vcp_type)) {
+        }
+        else if(MP_OBJ_IS_TYPE(args[0], &pyb_usb_vcp_type))
+        {
             MP_STATE_VM(dupterm_objs[1]) = args[0];
         }
 
         return mp_const_none;
     }
 }
-MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(uos_dupterm_obj, 1, 2, uos_dupterm);
+MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(uos_dupterm_obj, 0, 1, uos_dupterm);
 
 
 STATIC const mp_rom_map_elem_t os_module_globals_table[] = {
@@ -158,8 +145,8 @@ STATIC const mp_rom_map_elem_t os_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_VfsFat),          MP_ROM_PTR(&mp_fat_vfs_type) },
     { MP_ROM_QSTR(MP_QSTR_dupterm),         MP_ROM_PTR(&uos_dupterm_obj) },
 };
-
 STATIC MP_DEFINE_CONST_DICT(os_module_globals, os_module_globals_table);
+
 
 const mp_obj_module_t mp_module_uos = {
     .base = { &mp_type_module },

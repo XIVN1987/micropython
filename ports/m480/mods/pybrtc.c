@@ -1,29 +1,3 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013, 2014 Damien P. George
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdio.h>
 
 #include "py/runtime.h"
@@ -35,75 +9,125 @@
 #include "lib/timeutils/timeutils.h"
 
 
+/******************************************************************************
+ DEFINE TYPES
+ ******************************************************************************/
+typedef struct {
+    mp_obj_base_t base;
+} pyb_rtc_obj_t;
+
+
+/******************************************************************************
+ DECLARE PRIVATE DATA
+ ******************************************************************************/
+STATIC pyb_rtc_obj_t pyb_rtc_obj = { {&pyb_rtc_type} };
+
+
+/******************************************************************************
+ DEFINE PUBLIC FUNCTIONS
+ ******************************************************************************/
 void rtc_init(void)
 {
-    CLK->PWRCTL |= CLK_PWRCTL_LXTEN_Msk;        // 32K (LXT) Enabled
+    CLK->PWRCTL  |= CLK_PWRCTL_LXTEN_Msk;       // 32K (LXT) Enabled
     CLK->APBCLK0 |= CLK_APBCLK0_RTCCKEN_Msk;    // RTC Clock Enable
+
+    S_RTC_TIME_DATA_T datetime;
+    datetime.u32Year      = 2020;
+    datetime.u32Month     = 4;
+    datetime.u32Day       = 8;
+    datetime.u32DayOfWeek = RTC_WEDNESDAY;
+    datetime.u32Hour      = 21;
+    datetime.u32Minute    = 20;
+    datetime.u32Second    = 30;
+    datetime.u32TimeScale = RTC_CLOCK_24;
+
+    RTC_SetDateAndTime(&datetime);
 }
 
 
-uint32_t rtc_get(void)
+uint32_t rtc_get_seconds(void)
 {
-    S_RTC_TIME_DATA_T sRTCTimeData;
+    S_RTC_TIME_DATA_T datetime;
 
-    RTC_GetDateAndTime(&sRTCTimeData);
+    RTC_GetDateAndTime(&datetime);
 
-    return timeutils_seconds_since_2000(sRTCTimeData.u32Year, sRTCTimeData.u32Month,
-            sRTCTimeData.u32Day, sRTCTimeData.u32Hour, sRTCTimeData.u32Minute, sRTCTimeData.u32Second);
+    return timeutils_seconds_since_2000(datetime.u32Year, datetime.u32Month, datetime.u32Day,
+                                        datetime.u32Hour, datetime.u32Minute, datetime.u32Second);
 }
 
 
-void rtc_set(uint32_t seconds)
+/******************************************************************************/
+/* MicroPython bindings                                                       */
+
+STATIC void rtc_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind)
 {
-    timeutils_struct_time_t tm;
-    timeutils_seconds_since_2000_to_struct_time(seconds, &tm);
+    pyb_rtc_obj_t *self = self_in;
 
-    S_RTC_TIME_DATA_T sRTCTimeData;
-    sRTCTimeData.u32Year = tm.tm_year;
-    sRTCTimeData.u32Month = tm.tm_mon;
-    sRTCTimeData.u32Day = tm.tm_mday;
-    sRTCTimeData.u32Hour = tm.tm_hour;
-    sRTCTimeData.u32Minute = tm.tm_min;
-    sRTCTimeData.u32Second = tm.tm_sec;
-    sRTCTimeData.u32TimeScale = RTC_CLOCK_24;
-
-    RTC_SetDateAndTime(&sRTCTimeData);
+    mp_printf(print, "RTC()");
 }
 
 
-STATIC mp_obj_t pyb_rtc_get(void) {
-    timeutils_struct_time_t tm;
-    timeutils_seconds_since_2000_to_struct_time(rtc_get(), &tm);
+STATIC mp_obj_t rtc_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args)
+{
+    mp_arg_check_num(n_args, n_kw, 0, 0, false);
 
-    mp_obj_t tuple[8];
-    tuple[0] = mp_obj_new_int(tm.tm_year);
-    tuple[1] = mp_obj_new_int(tm.tm_mon);
-    tuple[2] = mp_obj_new_int(tm.tm_mday);
-    tuple[4] = mp_obj_new_int(tm.tm_hour);
-    tuple[5] = mp_obj_new_int(tm.tm_min);
-    tuple[6] = mp_obj_new_int(tm.tm_sec);
-    tuple[7] = mp_obj_new_int(0);           // millisecond
-    tuple[3] = mp_obj_new_int(tm.tm_wday);
-
-    return mp_obj_new_tuple(8, tuple);
+    return &pyb_rtc_obj;
 }
-MP_DEFINE_CONST_FUN_OBJ_0(pyb_rtc_get_obj, pyb_rtc_get);
 
 
-STATIC mp_obj_t pyb_rtc_set(const mp_obj_t tuple) {
-    mp_obj_t *items;
-    mp_obj_get_array_fixed_n(tuple, 8, &items);
+STATIC mp_obj_t rtc_datetime(size_t n_args, const mp_obj_t *args)
+{
+    if(n_args == 1) // get date and time
+    {
+        S_RTC_TIME_DATA_T datetime;
 
-    uint seconds = timeutils_seconds_since_2000(
-                mp_obj_get_int(items[0]),   // year
-                mp_obj_get_int(items[1]),   // month
-                mp_obj_get_int(items[2]),   // day
-                mp_obj_get_int(items[3]),   // hour
-                mp_obj_get_int(items[4]),   // minute
-                mp_obj_get_int(items[5]));  // second
+        RTC_GetDateAndTime(&datetime);
 
-    rtc_set(seconds);
+        mp_obj_t tuple[8];
+        tuple[0] = mp_obj_new_int(datetime.u32Year);
+        tuple[1] = mp_obj_new_int(datetime.u32Month);
+        tuple[2] = mp_obj_new_int(datetime.u32Day);
+        tuple[3] = mp_obj_new_int(datetime.u32DayOfWeek);
+        tuple[4] = mp_obj_new_int(datetime.u32Hour);
+        tuple[5] = mp_obj_new_int(datetime.u32Minute);
+        tuple[6] = mp_obj_new_int(datetime.u32Second);
+        tuple[7] = mp_obj_new_int(0);
 
-    return mp_const_none;
+        return mp_obj_new_tuple(8, tuple);
+    }
+    else            // set date and time
+    {
+        mp_obj_t *items;
+        mp_obj_get_array_fixed_n(args[1], 8, &items);
+
+        S_RTC_TIME_DATA_T datetime;
+        datetime.u32Year      = mp_obj_get_int(items[0]);
+        datetime.u32Month     = mp_obj_get_int(items[1]);
+        datetime.u32Day       = mp_obj_get_int(items[2]);
+        datetime.u32DayOfWeek = mp_obj_get_int(items[3]);
+        datetime.u32Hour      = mp_obj_get_int(items[4]);
+        datetime.u32Minute    = mp_obj_get_int(items[5]);
+        datetime.u32Second    = mp_obj_get_int(items[6]);
+        datetime.u32TimeScale = RTC_CLOCK_24;
+
+        RTC_SetDateAndTime(&datetime);
+
+        return mp_const_none;
+    }
 }
-MP_DEFINE_CONST_FUN_OBJ_1(pyb_rtc_set_obj, pyb_rtc_set);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(rtc_datetime_obj, 1, 2, rtc_datetime);
+
+
+STATIC const mp_rom_map_elem_t rtc_locals_dict_table[] = {
+    { MP_ROM_QSTR(MP_QSTR_datetime), MP_ROM_PTR(&rtc_datetime_obj) },
+};
+STATIC MP_DEFINE_CONST_DICT(rtc_locals_dict, rtc_locals_dict_table);
+
+
+const mp_obj_type_t pyb_rtc_type = {
+    { &mp_type_type },
+    .name = MP_QSTR_RTC,
+    .print = rtc_print,
+    .make_new = rtc_make_new,
+    .locals_dict = (mp_obj_dict_t*)&rtc_locals_dict,
+};

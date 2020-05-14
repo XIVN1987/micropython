@@ -68,7 +68,7 @@ void ADC_Init(ADC_TypeDef * ADCx, ADC_InitStructure * initStruct)
 	
 	ADCx->CTRL2 &= ~(ADC_CTRL2_ADCEVCM_Msk | ADC_CTRL2_PGAIVCM_Msk | ADC_CTRL2_PGAGAIN_Msk | ADC_CTRL2_PGAVCM_Msk);
 	ADCx->CTRL2 |= (0                    << ADC_CTRL2_ADCEVCM_Pos) |
-	               (PGA_VCM_INTERNAL     << ADC_CTRL2_PGAIVCM_Pos) |
+	               (initStruct->pga_ref  << ADC_CTRL2_PGAIVCM_Pos) |
 				   (6                    << ADC_CTRL2_PGAGAIN_Pos) |
 				   ((uint32_t)6          << ADC_CTRL2_PGAVCM_Pos);
 	

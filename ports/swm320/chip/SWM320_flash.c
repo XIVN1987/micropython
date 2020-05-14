@@ -20,51 +20,28 @@
 #include "SWM320_flash.h"
 
 
-__attribute__((section("PlaceInRAM")))
-static void switchTo80M(void)
-{
-	uint32_t i;
-	
-	for(i = 0; i < 50; i++) __NOP();
-	
-	FLASH->CFG0 = 0x4bf;
-	FLASH->CFG1 = 0xabfc7a6e;
-	
-	for(i = 0; i < 50; i++) __NOP();
-}
-/*
-__attribute__((section("PlaceInRAM")))
-static void switchTo40M(void)
-{
-	uint32_t i;
-	
-	for(i = 0; i < 50; i++) __NOP();
-	
-	FLASH->CFG0 = 0x4b9;
-	FLASH->CFG1 = 0xABF41F25;
-	
-	for(i = 0; i < 50; i++) __NOP();
-}
-*/
+IAP_Cache_Reset_t IAP_Cache_Reset = (IAP_Cache_Reset_t)0x11000601;
+IAP_Flash_Param_t IAP_Flash_Param = (IAP_Flash_Param_t)0x11000681;
+IAP_Flash_Erase_t IAP_Flash_Erase = (IAP_Flash_Erase_t)0x11000781;
+IAP_Flash_Write_t IAP_Flash_Write = (IAP_Flash_Write_t)0x11000801;
+
 
 /****************************************************************************************************************************************** 
 * 函数名称: FLASH_Erase()
 * 功能说明:	片内Flash擦除
-* 输    入: uint32_t addr			擦除地址
+* 输    入: uint32_t addr			擦除地址，扇区大小为4K Byte
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
 void FLASH_Erase(uint32_t addr)
-{
-// 	switchTo80M();
+{	
+	__disable_irq();
 	
-	FLASH->ERASE = addr | ((uint32_t)1 << FLASH_ERASE_REQ_Pos);
-	while((FLASH->STAT & FLASH_STAT_ERASE_GOING_Msk) == 0);
-	while((FLASH->STAT & FLASH_STAT_ERASE_GOING_Msk) == 1);
+	IAP_Flash_Erase(addr / 0x1000);
 	
-	FLASH->ERASE = 0;
+	IAP_Cache_Reset();
 	
-// 	switchTo40M();
+	__enable_irq();
 }
 
 /****************************************************************************************************************************************** 
@@ -72,38 +49,33 @@ void FLASH_Erase(uint32_t addr)
 * 功能说明:	片内Flash写入
 * 输    入: uint32_t addr			写入地址
 *			uint32_t buff[]			要写入的数据
-*			uint32_t size			要写入数据的个数，字为单位
+*			uint32_t count			要写入数据的个数，以字为单位，且必须是4的整数倍，即最少写入4个字
+* 输    出: 无
+* 注意事项: 写入数据个数必须是4的整数倍，即最少写入4个字
+******************************************************************************************************************************************/
+void FLASH_Write(uint32_t addr, uint32_t buff[], uint32_t count)
+{
+	__disable_irq();
+	
+	IAP_Flash_Write(addr, (uint32_t)buff, count/4);
+	
+	IAP_Cache_Reset();
+	
+	__enable_irq();
+}
+
+/****************************************************************************************************************************************** 
+* 函数名称: Flash_Param_at_120MHz()
+* 功能说明:	将Flash参数设置成120MHz主频下运行时所需的参数
+* 输    入: 无
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
-void FLASH_Write(uint32_t addr, uint32_t buff[], uint32_t size)
+void Flash_Param_at_120MHz(void)
 {
-	uint32_t i, j;
+	__disable_irq();
 	
-	switchTo80M();
+	IAP_Flash_Param(0x48a, 0xabfc7a6e);
 	
-	FLASH->CACHE |= (1 << FLASH_CACHE_PROG_Pos);
-	
-	for(i = 0; i < size/4; i++)
-	{
-		FLASH->ADDR = addr + i * 4 * 4;
-		
-		for(j = 0; j < 4; j++)
-			FLASH->DATA = buff[i*4 + j];
-		while((FLASH->STAT & FLASH_STAT_FIFO_EMPTY_Msk) == 0) __NOP();
-	}
-	if((size % 4) != 0)
-	{
-		FLASH->ADDR = addr + i * 4 * 4;
-		
-		for(j = 0; j < size%4; j++)
-			FLASH->DATA = buff[i*4 + j];
-		while((FLASH->STAT & FLASH_STAT_FIFO_EMPTY_Msk) == 0) __NOP();
-	}
-	while(FLASH->STAT & FLASH_STAT_PROG_GOING_Msk);
-	
-	FLASH->CACHE |= (1 << FLASH_CACHE_CLEAR_Pos);
-	FLASH->CACHE = 0;
-	
-// 	switchTo40M();
+	__enable_irq();
 }

@@ -1,29 +1,3 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013-2017 Damien P. George
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdint.h>
 #include <string.h>
 
@@ -163,11 +137,11 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_3(pyb_flash_writeblocks_obj, pyb_flash_writeblock
 STATIC mp_obj_t pyb_flash_ioctl(mp_obj_t self, mp_obj_t cmd_in, mp_obj_t arg_in) {
     mp_int_t cmd = mp_obj_get_int(cmd_in);
     switch (cmd) {
-        case BP_IOCTL_INIT:      return MP_OBJ_NEW_SMALL_INT(flash_disk_init() != RES_OK);
-        case BP_IOCTL_DEINIT:    flash_disk_flush(); return MP_OBJ_NEW_SMALL_INT(0);
-        case BP_IOCTL_SYNC:      flash_disk_flush(); return MP_OBJ_NEW_SMALL_INT(0);
-        case BP_IOCTL_SEC_COUNT: return MP_OBJ_NEW_SMALL_INT(FLASH_SECTOR_COUNT);
-        case BP_IOCTL_SEC_SIZE:  return MP_OBJ_NEW_SMALL_INT(FLASH_SECTOR_SIZE);
+        case MP_BLOCKDEV_IOCTL_INIT:        return MP_OBJ_NEW_SMALL_INT(flash_disk_init() != RES_OK);
+        case MP_BLOCKDEV_IOCTL_DEINIT:      flash_disk_flush(); return MP_OBJ_NEW_SMALL_INT(0);
+        case MP_BLOCKDEV_IOCTL_SYNC:        flash_disk_flush(); return MP_OBJ_NEW_SMALL_INT(0);
+        case MP_BLOCKDEV_IOCTL_BLOCK_COUNT: return MP_OBJ_NEW_SMALL_INT(FLASH_SECTOR_COUNT);
+        case MP_BLOCKDEV_IOCTL_BLOCK_SIZE:  return MP_OBJ_NEW_SMALL_INT(FLASH_SECTOR_SIZE);
         default: return mp_const_none;
     }
 }
@@ -190,14 +164,14 @@ const mp_obj_type_t pyb_flash_type = {
 
 void pyb_flash_init_vfs(fs_user_mount_t *vfs) {
     vfs->base.type = &mp_fat_vfs_type;
-    vfs->flags |= FSUSER_NATIVE | FSUSER_HAVE_IOCTL;
+    vfs->blockdev.flags |= MP_BLOCKDEV_FLAG_NATIVE | MP_BLOCKDEV_FLAG_HAVE_IOCTL;
     vfs->fatfs.drv = vfs;
-    vfs->readblocks[0] = (mp_obj_t)&pyb_flash_readblocks_obj;
-    vfs->readblocks[1] = (mp_obj_t)&pyb_flash_obj;
-    vfs->readblocks[2] = (mp_obj_t)flash_disk_read; // native version
-    vfs->writeblocks[0] = (mp_obj_t)&pyb_flash_writeblocks_obj;
-    vfs->writeblocks[1] = (mp_obj_t)&pyb_flash_obj;
-    vfs->writeblocks[2] = (mp_obj_t)flash_disk_write; // native version
-    vfs->u.ioctl[0] = (mp_obj_t)&pyb_flash_ioctl_obj;
-    vfs->u.ioctl[1] = (mp_obj_t)&pyb_flash_obj;
+    vfs->blockdev.readblocks[0] = (mp_obj_t)&pyb_flash_readblocks_obj;
+    vfs->blockdev.readblocks[1] = (mp_obj_t)&pyb_flash_obj;
+    vfs->blockdev.readblocks[2] = (mp_obj_t)flash_disk_read; // native version
+    vfs->blockdev.writeblocks[0] = (mp_obj_t)&pyb_flash_writeblocks_obj;
+    vfs->blockdev.writeblocks[1] = (mp_obj_t)&pyb_flash_obj;
+    vfs->blockdev.writeblocks[2] = (mp_obj_t)flash_disk_write; // native version
+    vfs->blockdev.u.ioctl[0] = (mp_obj_t)&pyb_flash_ioctl_obj;
+    vfs->blockdev.u.ioctl[1] = (mp_obj_t)&pyb_flash_obj;
 }

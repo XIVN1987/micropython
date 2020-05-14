@@ -48,10 +48,10 @@ void RTC_Init(RTC_TypeDef * RTCx, RTC_InitStructure * initStruct)
 				   (initStruct->Minute << RTC_MINSEC_MIN_Pos);
 	
 	RTCx->DATHUR = (initStruct->Hour << RTC_DATHUR_HOUR_Pos) |
-				   ((initStruct->Date - 1) << RTC_DATHUR_DATE_Pos);
+				   (initStruct->Date << RTC_DATHUR_DATE_Pos);
 	
 	RTCx->MONDAY = (calcWeekDay(initStruct->Year, initStruct->Month, initStruct->Date) << RTC_MONDAY_DAY_Pos) |
-				   ((initStruct->Month - 1) << RTC_MONDAY_MON_Pos);
+				   (initStruct->Month << RTC_MONDAY_MON_Pos);
 	
 	RTCx->YEAR = initStruct->Year - 1901;
 	
@@ -106,12 +106,42 @@ void RTC_Stop(RTC_TypeDef * RTCx)
 void RTC_GetDateTime(RTC_TypeDef * RTCx, RTC_DateTime * dateTime)
 {
 	dateTime->Year = RTCx->YEAR + 1901;
-	dateTime->Month = ((RTCx->MONDAY & RTC_MONDAY_MON_Msk) >> RTC_MONDAY_MON_Pos) + 1;
-	dateTime->Date = ((RTCx->DATHUR & RTC_DATHUR_DATE_Msk) >> RTC_DATHUR_DATE_Pos) + 1;
+	dateTime->Month = (RTCx->MONDAY & RTC_MONDAY_MON_Msk) >> RTC_MONDAY_MON_Pos;
+	dateTime->Date = (RTCx->DATHUR & RTC_DATHUR_DATE_Msk) >> RTC_DATHUR_DATE_Pos;
 	dateTime->Day = 1 << ((RTCx->MONDAY & RTC_MONDAY_DAY_Msk) >> RTC_MONDAY_DAY_Pos);
 	dateTime->Hour = (RTCx->DATHUR & RTC_DATHUR_HOUR_Msk) >> RTC_DATHUR_HOUR_Pos;
 	dateTime->Minute = (RTCx->MINSEC & RTC_MINSEC_MIN_Msk) >> RTC_MINSEC_MIN_Pos;
 	dateTime->Second = (RTCx->MINSEC & RTC_MINSEC_SEC_Msk) >> RTC_MINSEC_SEC_Pos;
+}
+
+/******************************************************************************************************************************************
+* 函数名称:	RTC_SetDateTime()
+* 功能说明:	设置当前的时间和日期
+* 输    入: RTC_TypeDef * RTCx	指定要被设置的RTC，有效值包括RTC
+*			RTC_DateTime * dateTime    要设置的当前日期和时间
+* 输    出: 无
+* 注意事项: 无
+******************************************************************************************************************************************/
+void RTC_SetDateTime(RTC_TypeDef * RTCx, RTC_DateTime * dateTime)
+{
+    RTC_Stop(RTCx);
+
+    while(RTCx->CFGABLE == 0);
+
+    RTCx->MINSEC = (dateTime->Second << RTC_MINSEC_SEC_Pos) |
+                   (dateTime->Minute << RTC_MINSEC_MIN_Pos);
+
+    RTCx->DATHUR = (dateTime->Hour << RTC_DATHUR_HOUR_Pos) |
+                   (dateTime->Date << RTC_DATHUR_DATE_Pos);
+
+    RTCx->MONDAY = (calcWeekDay(dateTime->Year, dateTime->Month, dateTime->Date) << RTC_MONDAY_DAY_Pos) |
+                   (dateTime->Month << RTC_MONDAY_MON_Pos);
+
+    RTCx->YEAR = dateTime->Year - 1901;
+
+    RTCx->LOAD = 1 << RTC_LOAD_TIME_Pos;
+
+    RTC_Start(RTCx);
 }
 
 /****************************************************************************************************************************************** 

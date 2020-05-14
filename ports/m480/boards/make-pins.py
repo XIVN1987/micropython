@@ -40,7 +40,7 @@ class Pins:
                     name = 'P' + match.group(2) + match.group(4)
 
                     if name not in self.pins:
-                        self.pins[name] = Pin(name, 'P'+match.group(2), 'BIT'+match.group(4), 'GP%s_IRQn' %match.group(2))
+                        self.pins[name] = Pin(name, 'P'+match.group(2), match.group(4), 'GP%s_IRQn' %match.group(2))
 
                     self.pins[name].afs.append(('%s_%s' %(name, match.group(5)), match.group(1), '(0xFu << %-24s)' %match.group(6), 
                                             '&SYS->GP%s_MFP%s' %(match.group(2), match.group(3))))

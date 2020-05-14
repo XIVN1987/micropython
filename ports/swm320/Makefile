@@ -12,46 +12,47 @@ CROSS_COMPILE ?= arm-none-eabi-
 include ../../py/mkenv.mk
 
 
-CFLAGS  = -mthumb -mcpu=cortex-m4 -mfloat-abi=soft -fsingle-precision-constant -Wdouble-promotion
-CFLAGS += -Wall -Wpointer-arith -Werror -std=gnu99 -nostdlib
-CFLAGS += -ffunction-sections -fdata-sections -fno-common -fsigned-char -mno-unaligned-access
+CFLAGS  = -mthumb -mcpu=cortex-m4 -mfloat-abi=soft
+CFLAGS += -ffunction-sections -fdata-sections -funsigned-char
 CFLAGS += $(CFLAGS_MOD)
 
-DEBUG = 1
-ifeq ($(DEBUG),1)
+ifndef NDEBUG
 CFLAGS += -O0 -g
 else
-CFLAGS += -O2
+CFLAGS += -O2 -DNDEBUG
 endif
 
-LDFLAGS = -Wl,-nostdlib -Wl,--gc-sections -Wl,-Map=$@.map -mthumb -mcpu=cortex-m4 -mfloat-abi=soft
+LDFLAGS  = -mthumb -mcpu=cortex-m4 -mfloat-abi=soft
+LDFLAGS += -Wl,--gc-sections -Wl,-nostdlib -Wl,-Map=$@.map -T swm320.ld
+LDFLAGS += $(LDFLAGS_MOD)
 
 
 # qstr definitions (must come before including py.mk)
 QSTR_DEFS = qstrdefsport.h $(BUILD)/pins_qstr.h
 
+MICROPY_VFS_FAT = 1
+
 include $(TOP)/py/py.mk
 
 
-INC =  -I.
-INC += -I$(TOP)
-INC += -I$(TOP)/lib/cmsis/inc
-INC += -Ichip
-INC += -Imods
-INC += -Imisc
-INC += -Iboards/$(BOARD)
-INC += -I$(BUILD)
-INC += -I$(BUILD)/genhdr
+INCS = \
+	-I. \
+	-I$(TOP) \
+	-I$(TOP)/lib/cmsis/inc \
+	-Ichip \
+	-Imods \
+	-Imisc \
+	-Iboards/$(BOARD) \
+	-I$(BUILD) \
+	-I$(BUILD)/genhdr \
 
-CPPDEFINES = -Dgcc
+CFLAGS += $(INCS)
 
-
-MAIN_SRC_C = \
+C_APP = \
 	main.c \
 	mphalport.c \
-	mpthreadport.c \
 
-CHIP_SRC_C = $(addprefix chip/,\
+C_CHIP = $(addprefix chip/, \
 	SWM320_adc.c \
 	SWM320_can.c \
 	SWM320_crc.c \
@@ -72,47 +73,48 @@ CHIP_SRC_C = $(addprefix chip/,\
 	system_SWM320.c \
 )
 
-CHIP_SRC_S = $(addprefix chip/startup/gcc/,\
+S_CHIP = $(addprefix chip/startup/gcc/, \
 	startup_SWM320.s \
 )
 
-MODS_SRC_C = $(addprefix mods/,\
+C_MODS = $(addprefix mods/, \
 	moduos.c \
 	modutime.c \
 	modmachine.c \
 	pybpin.c \
 	pybuart.c \
 	pybflash.c \
-	pybadc.c \
+    pybtimer.c \
+    pybpulse.c \
 	pybspi.c \
-	pybtimer.c \
 	pybi2c.c \
+    pybadc.c \
 	pybpwm.c \
+    pybcan.c \
+    pybrtc.c \
+    pybwdt.c \
 )
 
-MISC_SRC_C = $(addprefix misc/,\
-	fifo.c \
+C_MISC = $(addprefix misc/, \
 	bufhelper.c \
 	gccollect.c \
 	random.c \
 )
 
-MISC_SRC_S = $(addprefix misc/,\
-	gchelper.s \
-)
-
-LIB_SRC_C = $(addprefix lib/,\
-	oofatfs/ff.c \
-	oofatfs/ffunicode.c \
+C_LIB = $(addprefix lib/, \
 	libc/string0.c \
-	mp-readline/readline.c \
-	timeutils/timeutils.c \
 	utils/pyexec.c \
+    mp-readline/readline.c \
 	utils/interrupt_char.c \
 	utils/sys_stdio_mphal.c \
+    timeutils/timeutils.c \
 )
 
-LIBM_SRC_C = $(addprefix lib/libm/,\
+S_LIB = $(addprefix lib/, \
+	utils/gchelper_m3.s \
+)
+
+C_LIBM = $(addprefix lib/libm/, \
 	math.c \
 	acoshf.c \
 	asinfacosf.c \
@@ -141,30 +143,22 @@ LIBM_SRC_C = $(addprefix lib/libm/,\
 	ef_sqrt.c \
 )
 
-OBJ = $(PY_O) 
-OBJ += $(addprefix $(BUILD)/, $(MAIN_SRC_C:.c=.o) $(CHIP_SRC_C:.c=.o) $(CHIP_SRC_S:.s=.o))
-OBJ += $(addprefix $(BUILD)/, $(MODS_SRC_C:.c=.o) $(MISC_SRC_C:.c=.o) $(MISC_SRC_S:.s=.o) $(LIB_SRC_C:.c=.o) $(LIBM_SRC_C:.c=.o))
+OBJ  = $(PY_O) 
+OBJ += $(addprefix $(BUILD)/, $(C_APP:.c=.o) $(C_CHIP:.c=.o) $(S_CHIP:.s=.o) $(C_MODS:.c=.o) $(C_MISC:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(C_LIB:.c=.o) $(S_LIB:.s=.o)  $(C_LIBM:.c=.o) $(SRC_MOD:.c=.o))
 OBJ += $(BUILD)/pins.o
 
 # List of sources for qstr extraction
-SRC_QSTR += $(MODS_SRC_C) $(MISC_SRC_C)
+SRC_QSTR += $(C_MODS) $(C_MISC)
 # Append any auto-generated sources that are needed by sources listed in SRC_QSTR
 SRC_QSTR_AUTO_DEPS +=
-
-# Add the linker script
-LINKER_SCRIPT = swm320.ld
-LDFLAGS += -T $(LINKER_SCRIPT)
-
-# Add the firmware specific CFLAGS
-CFLAGS += $(CPPDEFINES) $(INC)
-
 
 
 all: $(BUILD)/micropython.bin
 
-$(BUILD)/micropython.elf: $(OBJ) $(LINKER_SCRIPT)
+$(BUILD)/micropython.elf: $(OBJ)
 	$(ECHO) "LINK $@"
-	$(Q)$(CC) -o $@ $(LDFLAGS) $(OBJ) $(LIBS)
+	$(Q)$(CC) -o $@ $(LDFLAGS) $(OBJ)
 	$(CROSS_COMPILE)objdump -d $@ > $@.dis
 	$(Q)$(SIZE) $@
 

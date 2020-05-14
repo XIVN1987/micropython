@@ -346,7 +346,7 @@ uint USB_VCP_send(uint8_t *buffer, uint32_t len, uint32_t timeout)
 {
     if(len > TX_BUFF_SIZE) len = TX_BUFF_SIZE;
 
-    memcpy(vcom.tx_buff, buffer, len);
+    memcpy((void *)vcom.tx_buff, buffer, len);
     vcom.tx_write = len;
     vcom.tx_read = 0;
 
@@ -407,7 +407,7 @@ uint USB_VCP_recv(uint8_t *buffer, uint32_t len, uint32_t timeout)
             uint n = vcom.rx_write - vcom.rx_read;
             if(n > len) n = len;
 
-            memcpy(&buffer[rcvd], &vcom.rx_buff[vcom.rx_read], n);
+            memcpy((void *)&buffer[rcvd], (void *)&vcom.rx_buff[vcom.rx_read], n);
             vcom.rx_read += n;
             rcvd += n;
         }
@@ -416,7 +416,7 @@ uint USB_VCP_recv(uint8_t *buffer, uint32_t len, uint32_t timeout)
             uint n = RX_BUFF_SIZE - vcom.rx_read;
             if(n > len) n = len;
 
-            memcpy(&buffer[rcvd], &vcom.rx_buff[vcom.rx_read], n);
+            memcpy((void *)&buffer[rcvd], (void *)&vcom.rx_buff[vcom.rx_read], n);
             vcom.rx_read += n;
             rcvd += n;
 

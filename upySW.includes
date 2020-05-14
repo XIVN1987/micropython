@@ -1,5 +1,5 @@
 .
-C:\Ubuntu\gcc-arm-none\arm-none-eabi\include
+D:\Program\Ubuntu\bin\gcc-arm-none\arm-none-eabi\include
 extmod
 extmod/re1.5
 extmod/uzlib
@@ -19,3 +19,4 @@ ports/swm320/chip
 ports/swm320/misc
 ports/swm320/mods
 py
+extmod/crypto-algorithms

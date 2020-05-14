@@ -8,61 +8,105 @@ endif
 BUILD ?= build-$(BOARD)
 
 
+CROSS_COMPILE ?= arm-none-eabi-
 include ../../py/mkenv.mk
 
 
-CROSS_COMPILE ?= arm-none-eabi-
-
-CFLAGS_CORTEX_M4 = -mthumb -march=armv7e-m -mabi=aapcs -mcpu=cortex-m4 -msoft-float -mfloat-abi=soft -fsingle-precision-constant -Wdouble-promotion
-CFLAGS = -Wall -Wpointer-arith -Werror -std=gnu99 -nostdlib $(CFLAGS_CORTEX_M4) -Os
-CFLAGS += -g -ffunction-sections -fdata-sections -fno-common -fsigned-char -mno-unaligned-access
+CFLAGS  = -mthumb -mcpu=cortex-m4 -msoft-float
+CFLAGS += -ffunction-sections -fdata-sections -funsigned-char
 CFLAGS += $(CFLAGS_MOD)
 
-LDFLAGS = -Wl,-nostdlib -Wl,--gc-sections -Wl,-Map=$@.map
+ifndef NDEBUG
+CFLAGS += -O0 -g
+else
+CFLAGS += -O2 -DNDEBUG
+endif
+
+LDFLAGS  = -mthumb -mcpu=cortex-m4 -msoft-float
+LDFLAGS += -Wl,--gc-sections -Wl,-nostdlib -Wl,-Map=$@.map -T mt7687f.ld
+LDFLAGS += $(LDFLAGS_MOD) -DUSE_FREERTOS
 
 
 # qstr definitions (must come before including py.mk)
 QSTR_DEFS = qstrdefsport.h $(BUILD)/pins_qstr.h
 
+MICROPY_VFS_FAT = 1
+
 include $(TOP)/py/py.mk
 
 
-INC =  -I.
-INC += -I$(TOP)
-INC += -I$(TOP)/lib/cmsis/inc
-INC += -Ichip/Include
-INC += -Irtos
-INC += -Irtos/Source/include
-INC += -Irtos/Source/portable/ARM_CM4
-INC += -Imods
-INC += -Imisc
-INC += -Iboards/$(BOARD)
-INC += -I$(BUILD)
-INC += -I$(BUILD)/genhdr
+INCS = \
+	-I. \
+	-I$(TOP) \
+	-I$(TOP)/lib/cmsis/inc \
+	-Ichip \
+	-Imods \
+	-Imisc \
+	-Irtos \
+	-Irtos/include \
+	-Irtos/portable/ARM_CM4 \
+	-Iboards/$(BOARD) \
+	-I$(BUILD) \
+	-I$(BUILD)/genhdr \
 
-CPPDEFINES = -Dgcc -DUSE_FREERTOS
+CFLAGS += $(INCS)
 
-
-MAIN_SRC_C = \
+C_APP = \
 	main.c \
 	mphalport.c \
 	mpthreadport.c \
 	fatfs_port.c \
 
-CHIP_SRC_C = $(addprefix chip/Source/,\
+C_CHIP = $(addprefix chip/, \
 	system_MT7687.c \
 	MT7687_GPIO.c \
 	MT7687_UART.c \
-    MT7687_TIMR.c \
-    MT7687_PWM.c  \
-    MT7687_Flash.c \
+	MT7687_TIMR.c \
+	MT7687_Flash.c \
+    MT7687_SPI.c \
+    MT7687_I2C.c \
+    MT7687_ADC.c \
+    MT7687_PWM.c \
+    MT7687_RTC.c \
+    MT7687_WDT.c \
 )
 
-CHIP_SRC_S = $(addprefix chip/Source/,\
-	gcc/startup_MT7687.s \
+S_CHIP = $(addprefix chip/startup/gcc/, \
+    startup_MT7687.s \
 )
 
-RTOS_SRC_C = $(addprefix rtos/Source/,\
+C_MODS = $(addprefix mods/, \
+	moduos.c \
+	modmachine.c \
+	modutime.c \
+	pybuart.c \
+	pybflash.c \
+	pybpin.c \
+	pybtimer.c \
+    pybspi.c \
+    pybi2c.c \
+    pybadc.c \
+	pybpwm.c \
+    pybrtc.c \
+    pybwdt.c \
+)
+# 	modnetwork.c \
+# 	modusocket.c \
+# 	modussl.c \
+# 	modwlan.c \
+
+C_MISC = $(addprefix misc/, \
+	fifo.c \
+	bufhelper.c \
+	gccollect.c \
+	mperror.c \
+	random.c \
+)
+# 	ftp.c \
+# 	updater.c \
+# 	telnet.c \
+
+C_RTOS = $(addprefix rtos/, \
 	croutine.c \
 	event_groups.c \
 	list.c \
@@ -70,93 +114,73 @@ RTOS_SRC_C = $(addprefix rtos/Source/,\
 	tasks.c \
 	timers.c \
 	portable/ARM_CM4/port.c \
-    portable/MemMang/heap_4.c \
+	portable/MemMang/heap_4.c \
 )
 
-MODS_SRC_C = $(addprefix mods/,\
-	moduos.c \
-	modmachine.c \
-    modutime.c \
-    modubinascii.c \
-	pybuart.c \
-    pybflash.c \
-    pybpin.c \
-    pybtimer.c \
-    pybpwm.c \
-)
-#
-# 	modnetwork.c \
-# 	modusocket.c \
-# 	modussl.c \
-# 	modwlan.c \
-# 	pybadc.c \
-#
-# 	pybi2c.c \
-# 	pybrtc.c \
-#
-# 	pybsleep.c \
-# 	pybspi.c \
-#
-#
-# 	pybwdt.c \
-#)
-
-MISC_SRC_C = $(addprefix misc/,\
-	fifo.c \
-	bufhelper.c \
-	gccollect.c \
-	mperror.c \
-	random.c \
-	mpirq.c \
-)
-# 	ftp.c \
-# 	updater.c \
-# 	telnet.c \
-
-MISC_SRC_S = $(addprefix misc/,\
-	gchelper.s \
-)
-
-LIB_SRC_C = $(addprefix lib/,\
-	oofatfs/ff.c \
-	oofatfs/option/unicode.c \
+C_LIB = $(addprefix lib/, \
 	libc/string0.c \
-	mp-readline/readline.c \
-	netutils/netutils.c \
-	timeutils/timeutils.c \
 	utils/pyexec.c \
+	mp-readline/readline.c \
 	utils/interrupt_char.c \
 	utils/sys_stdio_mphal.c \
+	netutils/netutils.c \
+	timeutils/timeutils.c \
 )
 
-OBJ = $(PY_O) 
-OBJ += $(addprefix $(BUILD)/, $(MAIN_SRC_C:.c=.o) $(CHIP_SRC_C:.c=.o) $(CHIP_SRC_S:.s=.o) $(RTOS_SRC_C:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(MODS_SRC_C:.c=.o) $(MISC_SRC_C:.c=.o) $(MISC_SRC_S:.s=.o) $(LIB_SRC_C:.c=.o))
+S_LIB = $(addprefix lib/, \
+	utils/gchelper_m3.s \
+)
+
+C_LIBM = $(addprefix lib/libm/, \
+	math.c \
+	acoshf.c \
+	asinfacosf.c \
+	asinhf.c \
+	atan2f.c \
+	atanf.c \
+	atanhf.c \
+	ef_rem_pio2.c \
+	erf_lgamma.c \
+	fmodf.c \
+	kf_cos.c \
+	kf_rem_pio2.c \
+	kf_sin.c \
+	kf_tan.c \
+	log1pf.c \
+	nearbyintf.c \
+	sf_cos.c \
+	sf_erf.c \
+	sf_frexp.c \
+	sf_ldexp.c \
+	sf_modf.c \
+	sf_sin.c \
+	sf_tan.c \
+	wf_lgamma.c \
+	wf_tgamma.c \
+	ef_sqrt.c \
+)
+
+OBJ  = $(PY_O) 
+OBJ += $(addprefix $(BUILD)/, $(C_APP:.c=.o) $(C_CHIP:.c=.o) $(S_CHIP:.s=.o) $(C_MODS:.c=.o) $(C_MISC:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(C_LIB:.c=.o) $(S_LIB:.s=.o)  $(C_LIBM:.c=.o) $(C_RTOS:.c=.o) $(SRC_MOD:.c=.o))
 OBJ += $(BUILD)/pins.o
 
+
 # List of sources for qstr extraction
-SRC_QSTR += $(MODS_SRC_C) $(MISC_SRC_C)
+SRC_QSTR += $(C_MODS) $(C_MISC)
 # Append any auto-generated sources that are needed by sources listed in SRC_QSTR
 SRC_QSTR_AUTO_DEPS +=
 
-# Add the linker script
-LINKER_SCRIPT = mt7687f.ld
-LDFLAGS += -T $(LINKER_SCRIPT)
 
-# Add the firmware specific CFLAGS
-CFLAGS += $(CPPDEFINES) $(INC)
+all: $(BUILD)/micropython.bin
 
-
-
-all: $(BUILD)/firmware.bin
-
-$(BUILD)/firmware.elf: $(OBJ) $(LINKER_SCRIPT)
+$(BUILD)/micropython.elf: $(OBJ)
 	$(ECHO) "LINK $@"
-	$(Q)$(CC) -o $@ $(LDFLAGS) $(OBJ) $(LIBS)
-	$(CROSS_COMPILE)objdump -d $@ > $(BUILD)/firmware.elf.dis
+	$(Q)$(CC) -o $@ $(LDFLAGS) $(OBJ)
+	$(CROSS_COMPILE)objdump -d $@ > $(BUILD)/micropython.elf.dis
 	$(Q)$(SIZE) $@
 
-$(BUILD)/firmware.bin: $(BUILD)/firmware.elf
+$(BUILD)/micropython.bin: $(BUILD)/micropython.elf
 	$(ECHO) "Create $@"
 	$(Q)$(OBJCOPY) -O binary $< $@
 
@@ -167,9 +191,9 @@ $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
 $(OBJ): | $(HEADER_BUILD)/pins.h
 
 # Call make-pins.py to generate both pins.c and pins.h
-$(BUILD)/pins.c $(HEADER_BUILD)/pins.h $(BUILD)/pins_qstr.h: chip/Include/MT7687_GPIO.h boards/MT7687_prefix.c | $(HEADER_BUILD)
+$(BUILD)/pins.c $(HEADER_BUILD)/pins.h $(BUILD)/pins_qstr.h: chip/MT7687_GPIO.h boards/MT7687_prefix.c | $(HEADER_BUILD)
 	$(ECHO) "Create $@"
-	$(Q)$(PYTHON) boards/make-pins.py --af chip/Include/MT7687_GPIO.h --prefix boards/MT7687_prefix.c --hdr $(HEADER_BUILD)/pins.h --qstr $(BUILD)/pins_qstr.h > $(BUILD)/pins.c
+	$(Q)$(PYTHON) boards/make-pins.py --af chip/MT7687_GPIO.h --prefix boards/MT7687_prefix.c --hdr $(HEADER_BUILD)/pins.h --qstr $(BUILD)/pins_qstr.h > $(BUILD)/pins.c
 
 $(BUILD)/pins.o: $(BUILD)/pins.c
 	$(call compile_c)

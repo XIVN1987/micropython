@@ -1,30 +1,3 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013, 2014 Damien P. George
- * Copyright (c) 2015 Daniel Campora
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdint.h>
 
 // board specific definitions
@@ -34,13 +7,13 @@
 
 #define MICROPY_ALLOC_PATH_MAX                      (128)
 #define MICROPY_PERSISTENT_CODE_LOAD                (1)
-#define MICROPY_EMIT_THUMB                          (0)
+#define MICROPY_EMIT_THUMB                          (1)
 #define MICROPY_EMIT_INLINE_THUMB                   (0)
 #define MICROPY_COMP_MODULE_CONST                   (1)
 #define MICROPY_ENABLE_GC                           (1)
 #define MICROPY_ENABLE_FINALISER                    (1)
 #define MICROPY_COMP_TRIPLE_TUPLE_ASSIGN            (0)
-#define MICROPY_STACK_CHECK                         (0)
+#define MICROPY_STACK_CHECK                         (1)
 #define MICROPY_HELPER_REPL                         (1)
 #define MICROPY_ENABLE_SOURCE_LINE                  (1)
 #define MICROPY_ENABLE_DOC_STRING                   (0)
@@ -53,6 +26,9 @@
 #define MICROPY_READER_VFS                          (1)
 #define MICROPY_CPYTHON_COMPAT                      (1)
 #define MICROPY_QSTR_BYTES_IN_HASH                  (1)
+
+#define MICROPY_PY_OS_DUPTERM                       (3)
+#define MICROPY_PY_UOS_DUPTERM_BUILTIN_STREAM       (1)
 
 // fatfs configuration used in ffconf.h
 #define MICROPY_FATFS_ENABLE_LFN                    (2)
@@ -69,7 +45,6 @@
 #define MICROPY_CAN_OVERRIDE_BUILTINS               (1)
 #define MICROPY_USE_INTERNAL_ERRNO                  (1)
 #define MICROPY_VFS                                 (1)
-#define MICROPY_VFS_FAT                             (1)
 #define MICROPY_PY_ASYNC_AWAIT                      (0)
 #define MICROPY_PY_ALL_SPECIAL_METHODS              (1)
 #define MICROPY_PY_BUILTINS_INPUT                   (1)
@@ -144,17 +119,6 @@ extern const struct _mp_obj_module_t mp_module_ubinascii;
     { MP_ROM_QSTR(MP_QSTR_uselect),     MP_ROM_PTR(&mp_module_uselect) },   \
     { MP_ROM_QSTR(MP_QSTR_ubinascii),   MP_ROM_PTR(&mp_module_ubinascii) }, \
 
-#define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \
-    { MP_ROM_QSTR(MP_QSTR_os),          MP_ROM_PTR(&mp_module_uos) },       \
-    { MP_ROM_QSTR(MP_QSTR_machine),     MP_ROM_PTR(&machine_module) },      \
-    { MP_ROM_QSTR(MP_QSTR_time),        MP_ROM_PTR(&mp_module_utime) },     \
-    { MP_ROM_QSTR(MP_QSTR_select),      MP_ROM_PTR(&mp_module_uselect) },   \
-    { MP_ROM_QSTR(MP_QSTR_binascii),    MP_ROM_PTR(&mp_module_ubinascii) }, \
-    { MP_ROM_QSTR(MP_QSTR_re),          MP_ROM_PTR(&mp_module_ure) },       \
-    { MP_ROM_QSTR(MP_QSTR_json),        MP_ROM_PTR(&mp_module_ujson) },     \
-    { MP_ROM_QSTR(MP_QSTR_errno),       MP_ROM_PTR(&mp_module_uerrno) },    \
-    { MP_ROM_QSTR(MP_QSTR_struct),      MP_ROM_PTR(&mp_module_ustruct) },   \
-
 // extra constants
 #define MICROPY_PORT_CONSTANTS \
    { MP_ROM_QSTR(MP_QSTR_umachine),     MP_ROM_PTR(&machine_module) },
@@ -164,9 +128,7 @@ extern const struct _mp_obj_module_t mp_module_ubinascii;
 #define MP_STATE_PORT MP_STATE_VM
 #define MICROPY_PORT_ROOT_POINTERS                                        \
     const char *readline_hist[8];                                         \
-    mp_obj_t machine_config_main;                                         \
     struct _pyb_uart_obj_t *pyb_uart_objs[4];                             \
-    struct _os_term_dup_obj_t *os_term_dup_obj;                           \
 
 // type definitions for the specific machine
 #define MICROPY_MAKE_POINTER_CALLABLE(p)            ((void*)((mp_uint_t)(p) | 1))
@@ -195,7 +157,7 @@ static inline mp_uint_t disable_irq(void) {
 
 #define MICROPY_BEGIN_ATOMIC_SECTION()              disable_irq()
 #define MICROPY_END_ATOMIC_SECTION(state)           enable_irq(state)
-#define MICROPY_EVENT_POLL_HOOK                     __WFI();
+#define MICROPY_EVENT_POLL_HOOK                     {}
 
 
 // There is no classical C heap in bare-metal ports, only Python

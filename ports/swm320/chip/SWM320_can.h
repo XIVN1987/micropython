@@ -71,9 +71,10 @@ typedef struct {
 
 typedef struct {
 	uint32_t id;		//消息ID
+	uint8_t  format;	//帧格式：CAN_FRAME_STD、CAN_FRAME_EXT
 	uint8_t  remote;	//消息是否为远程帧
-	uint8_t  data[8];	//接收到的数据
 	uint8_t  size;		//接收到的数据个数
+	uint8_t  data[8];	//接收到的数据
 } CAN_RXMessage;
 
 

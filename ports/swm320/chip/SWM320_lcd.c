@@ -44,46 +44,21 @@ void LCD_Init(LCD_TypeDef * LCDx, LCD_InitStructure * initStruct)
 	{
 		LCDx->START = (0 << LCD_START_MPUEN_Pos);
 		
-		if(initStruct->Dir == LCD_DIR_LANDSCAPE)
-		{
-			LCDx->CR0 = ((initStruct->HnPixel - 1) << LCD_CR0_HPIX_Pos) |
-						((initStruct->VnPixel - 1) << LCD_CR0_VPIX_Pos) |
-						(initStruct->ClkAlways << LCD_CR0_DCLK_Pos) |
-						(initStruct->HsyncWidth << LCD_CR0_HLOW_Pos);
-			
-			LCDx->CR1 = (initStruct->Dir << LCD_CR1_DIRV_Pos) |
-						((initStruct->Hfp - 1) << LCD_CR1_HFP_Pos)  |
-						((initStruct->Hbp - 1) << LCD_CR1_HBP_Pos)  |
-						((initStruct->Vfp - 1) << LCD_CR1_VFP_Pos)  |
-						((initStruct->Vbp - 1) << LCD_CR1_VBP_Pos)  |
-						(initStruct->ClkDiv << LCD_CR1_DCLKDIV_Pos) |
-						(initStruct->SamplEdge << LCD_CR1_DCLKINV_Pos);
-		}
-		else
-		{
-			LCDx->CR0 = ((initStruct->HnPixel - 1) << LCD_CR0_VPIX_Pos) |
-						((initStruct->VnPixel - 1) << LCD_CR0_HPIX_Pos) |
-						(initStruct->ClkAlways << LCD_CR0_DCLK_Pos) |
-						(initStruct->HsyncWidth << LCD_CR0_HLOW_Pos);
-			
-			LCDx->CR1 = (initStruct->Dir << LCD_CR1_DIRV_Pos) |
-						((initStruct->Hfp - 1) << LCD_CR1_VFP_Pos)  |
-						((initStruct->Hbp - 1) << LCD_CR1_VBP_Pos)  |
-						((initStruct->Vfp - 1) << LCD_CR1_HFP_Pos)  |
-						((initStruct->Vbp - 1) << LCD_CR1_HBP_Pos)  |
-						(initStruct->ClkDiv << LCD_CR1_DCLKDIV_Pos) |
-						(initStruct->SamplEdge << LCD_CR1_DCLKINV_Pos);
-		}
+		LCDx->CR0 = ((initStruct->HnPixel - 1) << LCD_CR0_HPIX_Pos) |
+					((initStruct->VnPixel - 1) << LCD_CR0_VPIX_Pos) |
+					(initStruct->ClkAlways << LCD_CR0_DCLK_Pos) |
+					(initStruct->HsyncWidth << LCD_CR0_HLOW_Pos);
+		
+		LCDx->CR1 = ((initStruct->Hfp - 1) << LCD_CR1_HFP_Pos)  |
+					((initStruct->Hbp - 1) << LCD_CR1_HBP_Pos)  |
+					((initStruct->Vfp - 1) << LCD_CR1_VFP_Pos)  |
+					((initStruct->Vbp - 1) << LCD_CR1_VBP_Pos)  |
+					(initStruct->ClkDiv << LCD_CR1_DCLKDIV_Pos) |
+					(initStruct->SamplEdge << LCD_CR1_DCLKINV_Pos);
 	}
 	else if(initStruct->Interface == LCD_INTERFACE_I80)
 	{
-		LCDx->START = (1 << LCD_START_MPUEN_Pos);
-		
-		LCDx->CR1 = (1 << LCD_CR1_I80_Pos) |
-					(initStruct->T_CSf_WRf << LCD_CR1_TAS_Pos) |
-					(initStruct->T_WRnHold << LCD_CR1_TPWLW_Pos) |
-					(initStruct->T_WRr_CSr << LCD_CR1_TAH_Pos) |
-					(initStruct->T_CSr_CSf << LCD_CR1_TTAIL_Pos);
+		// 
 	}
 	
 	LCDx->IE = 1;
@@ -115,7 +90,7 @@ void LCD_Init(LCD_TypeDef * LCDx, LCD_InitStructure * initStruct)
 ******************************************************************************************************************************************/
 void LCD_Start(LCD_TypeDef * LCDx)
 {
-	LCDx->START |= (1 << LCD_START_GO_Pos);
+	LCDx->START |= (1 << LCD_START_GO_Pos) | (1 << LCD_START_BURST_Pos);
 }
 
 /****************************************************************************************************************************************** 
@@ -130,86 +105,6 @@ uint32_t LCD_IsBusy(LCD_TypeDef * LCDx)
 	return (LCDx->START & LCD_START_GO_Msk) ? 1 : 0;
 }
 
-/****************************************************************************************************************************************** 
-* 函数名称: LCD_I80_WriteReg()
-* 功能说明:	MPU接口时，写寄存器
-* 输    入: LCD_TypeDef * LCDx	指定要被设置的LCD，有效值包括LCD
-*			uint16_t reg		要写的寄存器其实地址，地址自增
-*			uint16_t val[]		寄存器值，数组地址必须自对齐
-*			uint16_t cnt		要写的寄存器个数
-* 输    出: 无
-* 注意事项: 无
-******************************************************************************************************************************************/
-void LCD_I80_WriteReg(LCD_TypeDef * LCDx, uint16_t reg, uint16_t val[], uint16_t cnt)
-{
-	LCD->SRCADDR = (uint32_t)val;
-	LCD->CR0 &= ~LCD_CR0_DLEN_Msk;
-	LCD->CR0 |= ((cnt-1) << LCD_CR0_DLEN_Pos);
-	
-	LCD->CR1 |=  (1 << LCD_CR1_CMD_Pos);
-	LCD->CR1 &= ~LCD_CR1_REG_Msk;
-	LCD->CR1 |= (reg << LCD_CR1_REG_Pos);
-	
-	LCD_Start(LCDx);
-	while(LCD_IsBusy(LCDx));
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称: LCD_I80_WriteOneReg()
-* 功能说明:	MPU接口时，写寄存器
-* 输    入: LCD_TypeDef * LCDx	指定要被设置的LCD，有效值包括LCD
-*			uint16_t reg		要写的寄存器其实地址
-*			uint16_t val		寄存器值
-* 输    出: 无
-* 注意事项: 无
-******************************************************************************************************************************************/
-void LCD_I80_WriteOneReg(LCD_TypeDef * LCDx, uint16_t reg, uint16_t val)
-{
-	uint16_t buf[1] __attribute__((aligned(4)));
-		
-	buf[0] = val;
-
-	LCD_I80_WriteReg(LCDx, reg, buf, 1);
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称: LCD_I80_WriteData()
-* 功能说明:	MPU接口时，写数据
-* 输    入: LCD_TypeDef * LCDx	指定要被设置的LCD，有效值包括LCD
-*			uint16_t val[]		要写的数据，数组地址必须自对齐
-*			uint16_t cnt		要写的数据个数
-* 输    出: 无
-* 注意事项: 无
-******************************************************************************************************************************************/
-void LCD_I80_WriteData(LCD_TypeDef * LCDx, uint16_t val[], uint16_t cnt)
-{
-	LCD->SRCADDR = (uint32_t)val;
-	LCD->CR0 &= ~LCD_CR0_DLEN_Msk;
-	LCD->CR0 |= ((cnt-1) << LCD_CR0_DLEN_Pos);
-	
-	LCD->CR1 &= ~(1 << LCD_CR1_CMD_Pos);
-	
-	LCD_Start(LCDx);
-	while(LCD_IsBusy(LCDx));
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称: LCD_I80_WriteOneData()
-* 功能说明:	MPU接口时，写数据
-* 输    入: LCD_TypeDef * LCDx	指定要被设置的LCD，有效值包括LCD
-*			uint16_t val		要写的数据
-* 输    出: 无
-* 注意事项: 无
-******************************************************************************************************************************************/
-void LCD_I80_WriteOneData(LCD_TypeDef * LCDx, uint16_t val)
-{
-	uint16_t buf[1] __attribute__((aligned(4)));
-	
-	buf[0] = val;
-
-	LCD_I80_WriteData(LCDx, buf, 2);
-}
-	
 /****************************************************************************************************************************************** 
 * 函数名称: LCD_INTEn()
 * 功能说明:	LCD中断使能，完成指定长度的数据传输时触发中断

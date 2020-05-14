@@ -227,12 +227,12 @@ void CAN_TransmitRequest(CAN_TypeDef * CANx, uint32_t format, uint32_t id, uint3
 void CAN_Receive(CAN_TypeDef * CANx, CAN_RXMessage *msg)
 {
 	uint32_t i;
-	uint32_t format = (CANx->RXFRAME.INFO & CAN_INFO_FF_Msk) >> CAN_INFO_FF_Pos;
+	msg->format = (CANx->RXFRAME.INFO & CAN_INFO_FF_Msk) >> CAN_INFO_FF_Pos;
 	
 	msg->remote = (CANx->RXFRAME.INFO & CAN_INFO_RTR_Msk) >> CAN_INFO_RTR_Pos;
 	msg->size = (CANx->RXFRAME.INFO & CAN_INFO_DLC_Msk) >> CAN_INFO_DLC_Pos;
 	
-	if(format == CAN_FRAME_STD)
+	if(msg->format == CAN_FRAME_STD)
 	{
 		msg->id = (CANx->RXFRAME.DATA[0] << 3) | (CANx->RXFRAME.DATA[1] >> 5);
 		
@@ -241,7 +241,7 @@ void CAN_Receive(CAN_TypeDef * CANx, CAN_RXMessage *msg)
 			msg->data[i] = CANx->RXFRAME.DATA[i+2];
 		}
 	}
-	else //if(format == CAN_FRAME_EXT)
+	else //if(msg->format == CAN_FRAME_EXT)
 	{
 		msg->id = (CANx->RXFRAME.DATA[0] << 21) | (CANx->RXFRAME.DATA[1] << 13) | (CANx->RXFRAME.DATA[2] << 5) | (CANx->RXFRAME.DATA[3] >> 3);
 		
@@ -349,15 +349,15 @@ void CAN_SetFilter32b(CAN_TypeDef * CANx, uint32_t check, uint32_t mask)
 	CANx->CR &= ~CAN_CR_AFM_Msk;
 	CANx->CR |= (CAN_FILTER_32b << CAN_CR_AFM_Pos);
 	
-	CANx->FILTER.AMR[0] =  mask & 0xFF;
-	CANx->FILTER.AMR[1] = (mask >>  8) & 0xFF;
-	CANx->FILTER.AMR[2] = (mask >> 16) & 0xFF;
-	CANx->FILTER.AMR[3] = (mask >> 24) & 0xFF;
+	CANx->FILTER.AMR[3] =  mask & 0xFF;
+	CANx->FILTER.AMR[2] = (mask >>  8) & 0xFF;
+	CANx->FILTER.AMR[1] = (mask >> 16) & 0xFF;
+	CANx->FILTER.AMR[0] = (mask >> 24) & 0xFF;
 	
-	CANx->FILTER.ACR[0] =  check & 0xFF;
-	CANx->FILTER.ACR[1] = (check >>  8) & 0xFF;
-	CANx->FILTER.ACR[2] = (check >> 16) & 0xFF;
-	CANx->FILTER.ACR[3] = (check >> 24) & 0xFF;
+	CANx->FILTER.ACR[3] =  check & 0xFF;
+	CANx->FILTER.ACR[2] = (check >>  8) & 0xFF;
+	CANx->FILTER.ACR[1] = (check >> 16) & 0xFF;
+	CANx->FILTER.ACR[0] = (check >> 24) & 0xFF;
 }
 
 /****************************************************************************************************************************************** 
@@ -376,15 +376,15 @@ void CAN_SetFilter16b(CAN_TypeDef * CANx, uint16_t check1, uint16_t mask1, uint1
 	CANx->CR &= ~CAN_CR_AFM_Msk;
 	CANx->CR |= (CAN_FILTER_16b << CAN_CR_AFM_Pos);
 	
-	CANx->FILTER.AMR[0] =  mask1 & 0xFF;
-	CANx->FILTER.AMR[1] = (mask1 >>  8) & 0xFF;
-	CANx->FILTER.AMR[2] =  mask2 & 0xFF;
-	CANx->FILTER.AMR[3] = (mask2 >>  8) & 0xFF;
+	CANx->FILTER.AMR[3] =  mask1 & 0xFF;
+	CANx->FILTER.AMR[2] = (mask1 >>  8) & 0xFF;
+	CANx->FILTER.AMR[1] =  mask2 & 0xFF;
+	CANx->FILTER.AMR[0] = (mask2 >>  8) & 0xFF;
 	
-	CANx->FILTER.ACR[0] =  check1 & 0xFF;
-	CANx->FILTER.ACR[1] = (check1 >>  8) & 0xFF;
-	CANx->FILTER.ACR[2] =  check2 & 0xFF;
-	CANx->FILTER.ACR[3] = (check2 >>  8) & 0xFF;
+	CANx->FILTER.ACR[3] =  check1 & 0xFF;
+	CANx->FILTER.ACR[2] = (check1 >>  8) & 0xFF;
+	CANx->FILTER.ACR[1] =  check2 & 0xFF;
+	CANx->FILTER.ACR[0] = (check2 >>  8) & 0xFF;
 }
 
 /****************************************************************************************************************************************** 

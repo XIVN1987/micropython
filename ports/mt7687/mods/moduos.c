@@ -1,47 +1,18 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013, 2014 Damien P. George
- * Copyright (c) 2015 Daniel Campora
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdint.h>
 #include <string.h>
 
-#include "py/objtuple.h"
+#include "py/obj.h"
 #include "py/objstr.h"
 #include "py/runtime.h"
-#include "lib/timeutils/timeutils.h"
-#include "lib/oofatfs/ff.h"
-#include "lib/oofatfs/diskio.h"
-#include "genhdr/mpversion.h"
-#include "moduos.h"
+
 #include "extmod/vfs.h"
 #include "extmod/vfs_fat.h"
-#include "random.h"
-#include "version.h"
 
-#include "pybuart.h"
+#include "misc/random.h"
+
+#include "mods/pybuart.h"
+
+#include "genhdr/mpversion.h"
 
 
 /// \module os - basic "operating system" services
@@ -55,25 +26,6 @@
 ///
 /// On boot up, the current directory is `/flash`.
 
-/******************************************************************************
- DECLARE PRIVATE DATA
- ******************************************************************************/
-STATIC os_term_dup_obj_t os_term_dup_obj;
-
-/******************************************************************************
- DEFINE PUBLIC FUNCTIONS
- ******************************************************************************/
-
-void osmount_unmount_all (void) {
-    //TODO
-    /*
-    for (mp_uint_t i = 0; i < MP_STATE_PORT(mount_obj_list).len; i++) {
-        os_fs_mount_t *mount_obj = ((os_fs_mount_t *)(MP_STATE_PORT(mount_obj_list).items[i]));
-        unmount(mount_obj);
-    }
-    */
-}
-
 /******************************************************************************/
 // MicroPython bindings
 //
@@ -82,9 +34,9 @@ STATIC const qstr os_uname_info_fields[] = {
     MP_QSTR_sysname, MP_QSTR_nodename,
     MP_QSTR_release, MP_QSTR_version, MP_QSTR_machine
 };
-STATIC const MP_DEFINE_STR_OBJ(os_uname_info_sysname_obj, "WiPy");
-STATIC const MP_DEFINE_STR_OBJ(os_uname_info_nodename_obj, "WiPy");
-STATIC const MP_DEFINE_STR_OBJ(os_uname_info_release_obj, WIPY_SW_VERSION_NUMBER);
+STATIC const MP_DEFINE_STR_OBJ(os_uname_info_sysname_obj, "MT7687");
+STATIC const MP_DEFINE_STR_OBJ(os_uname_info_nodename_obj, "MT7687");
+STATIC const MP_DEFINE_STR_OBJ(os_uname_info_release_obj, "MT7687");
 STATIC const MP_DEFINE_STR_OBJ(os_uname_info_version_obj, MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE);
 STATIC const MP_DEFINE_STR_OBJ(os_uname_info_machine_obj, MICROPY_HW_BOARD_NAME " with " MICROPY_HW_MCU_NAME);
 STATIC MP_DEFINE_ATTRTUPLE(
@@ -98,16 +50,19 @@ STATIC MP_DEFINE_ATTRTUPLE(
     (mp_obj_t)&os_uname_info_machine_obj
 );
 
+
 STATIC mp_obj_t os_uname(void) {
     return (mp_obj_t)&os_uname_info_obj;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(os_uname_obj, os_uname);
+
 
 STATIC mp_obj_t os_sync(void) {
 //    sflash_disk_flush();
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(os_sync_obj, os_sync);
+
 
 STATIC mp_obj_t os_urandom(mp_obj_t num) {
     mp_int_t n = mp_obj_get_int(num);
@@ -120,30 +75,35 @@ STATIC mp_obj_t os_urandom(mp_obj_t num) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(os_urandom_obj, os_urandom);
 
-STATIC mp_obj_t os_dupterm(uint n_args, const mp_obj_t *args) {
-    if (n_args == 0) {
-        if (MP_STATE_PORT(os_term_dup_obj) == MP_OBJ_NULL) {
-            return mp_const_none;
-        } else {
-            return MP_STATE_PORT(os_term_dup_obj)->stream_o;
-        }
+
+bool mp_uos_dupterm_is_builtin_stream(mp_const_obj_t stream) {
+    const mp_obj_type_t *type = mp_obj_get_type(stream);
+    return type == &pyb_uart_type
+        #if MICROPY_HW_ENABLE_USB
+        || type == &pyb_usb_vcp_type
+        #endif
+        ;
+}
+
+
+STATIC mp_obj_t os_dupterm(size_t n_args, const mp_obj_t *args) {
+    if(n_args == 0) {
+        return MP_STATE_VM(dupterm_objs[0]);
     } else {
-        mp_obj_t stream_o = args[0];
-        if (stream_o == mp_const_none) {
-            MP_STATE_PORT(os_term_dup_obj) = MP_OBJ_NULL;
-        } else {
-             if (!MP_OBJ_IS_TYPE(stream_o, &pyb_uart_type)) {
-                 // must be a stream-like object providing at least read and write methods
-                 mp_load_method(stream_o, MP_QSTR_read, os_term_dup_obj.read);
-                 mp_load_method(stream_o, MP_QSTR_write, os_term_dup_obj.write);
-             }
-            os_term_dup_obj.stream_o = stream_o;
-            MP_STATE_PORT(os_term_dup_obj) = &os_term_dup_obj;
+        if(MP_OBJ_IS_TYPE(args[0], &pyb_uart_type)) {
+            MP_STATE_VM(dupterm_objs[0]) = args[0];
         }
+        /*
+        else if(MP_OBJ_IS_TYPE(args[0], &pyb_usb_vcp_type)) {
+            MP_STATE_VM(dupterm_objs[1]) = args[0];
+        }
+        */
+
         return mp_const_none;
     }
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(os_dupterm_obj, 0, 1, os_dupterm);
+
 
 STATIC const mp_rom_map_elem_t os_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__),        MP_ROM_QSTR(MP_QSTR_uos) },
@@ -172,8 +132,8 @@ STATIC const mp_rom_map_elem_t os_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_VfsFat),          MP_ROM_PTR(&mp_fat_vfs_type) },
     { MP_ROM_QSTR(MP_QSTR_dupterm),         MP_ROM_PTR(&os_dupterm_obj) },
 };
-
 STATIC MP_DEFINE_CONST_DICT(os_module_globals, os_module_globals_table);
+
 
 const mp_obj_module_t mp_module_uos = {
     .base = { &mp_type_module },

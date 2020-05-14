@@ -20,4 +20,12 @@ void TIMR_INTClr(TIMR_TypeDef * TIMRx);							//清除中断标志
 uint32_t TIMR_INTStat(TIMR_TypeDef * TIMRx);					//获取中断状态
 
 
+#define PULSE_LOW	 0
+#define PULSE_HIGH	 1
+
+void Pulse_Init(uint32_t pulse, uint32_t int_en);
+void Pulse_Start(void);
+uint32_t Pulse_Done(void);
+
+
 #endif //__SWM320_TIMR_H__

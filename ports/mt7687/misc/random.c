@@ -1,34 +1,9 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2015 Daniel Campora
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdint.h>
 #include <stdbool.h>
 
 #include "py/obj.h"
 #include "random.h"
+
 
 /******************************************************************************
 * LOCAL TYPES
@@ -39,35 +14,27 @@ typedef union _rng_id_t {
     uint8_t        id8[6];
 } rng_id_t;
 
+
 /******************************************************************************
 * LOCAL VARIABLES
 ******************************************************************************/
 static uint32_t s_seed;
 
-/******************************************************************************
-* LOCAL FUNCTION DECLARATIONS
-******************************************************************************/
-STATIC uint32_t lfsr (uint32_t input);
 
 /******************************************************************************
 * PRIVATE FUNCTIONS
 ******************************************************************************/
-STATIC uint32_t lfsr (uint32_t input) {
+STATIC uint32_t lfsr (uint32_t input)
+{
     return (input >> 1) ^ (-(input & 0x01) & 0x00E10000);
 }
 
-/******************************************************************************/
-// MicroPython bindings;
-
-STATIC mp_obj_t machine_rng_get(void) {
-    return mp_obj_new_int(rng_get());
-}
-MP_DEFINE_CONST_FUN_OBJ_0(machine_rng_get_obj, machine_rng_get);
 
 /******************************************************************************
 * PUBLIC FUNCTIONS
 ******************************************************************************/
-void rng_init0 (void) {
+void rng_init0 (void)
+{
     rng_id_t juggler;
     uint32_t seconds;
     uint16_t mseconds;
@@ -96,7 +63,18 @@ void rng_init0 (void) {
     }
 }
 
-uint32_t rng_get (void) {
+uint32_t rng_get (void)
+{
     s_seed = lfsr( s_seed );
     return s_seed;
 }
+
+
+/******************************************************************************/
+// MicroPython bindings;
+
+STATIC mp_obj_t pyb_rng_get(void)
+{
+    return mp_obj_new_int(rng_get());
+}
+MP_DEFINE_CONST_FUN_OBJ_0(pyb_rng_get_obj, pyb_rng_get);

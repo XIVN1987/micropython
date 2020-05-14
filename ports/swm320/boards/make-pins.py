@@ -8,13 +8,15 @@ import argparse
 
 class Pin:
     """Holds the information associated with a pin."""
-    def __init__(self, name, port, pbit):
+    def __init__(self, name, port, pbit, preg, IRQn):
         self.name = name
         self.port = port
         self.pbit = pbit
+        self.preg = preg
+        self.IRQn = IRQn
 
     def print(self):
-        print('pin_obj_t pin_{:4s} = PIN({:4s}, {:5s}, {:2s});\n'.format(self.name, self.name, self.port, self.pbit))
+        print('pin_obj_t pin_{:4s} = PIN({:4s}, {:5s}, {:5s}, {:s}, {:10s});\n'.format(self.name, self.name, self.port, self.pbit, self.preg, self.IRQn))
 
     def print_header(self, hdr_file):
         hdr_file.write('extern pin_obj_t pin_{:4s};\n'.format(self.name))
@@ -44,7 +46,8 @@ class Pins:
                         if pin.name == name:
                             break
                     else:
-                        pin = Pin(name, 'GPIO'+match.group(1), 'PIN'+match.group(2))
+                        preg= 'PIN_BIT_BAND(%s, %2s)' %('GPIO'+match.group(1), match.group(2))
+                        pin = Pin(name, 'GPIO'+match.group(1), 'PIN'+match.group(2), preg, 'GPIO%s_IRQn' %match.group(1))
                         self.pins.append(pin)
 
     def print(self):

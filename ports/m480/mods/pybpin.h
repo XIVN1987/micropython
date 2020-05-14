@@ -1,31 +1,5 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013, 2014 Damien P. George
- * Copyright (c) 2015 Daniel Campora
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-#ifndef MICROPY_INCLUDED_M480_MODS_PYBPIN_H
-#define MICROPY_INCLUDED_M480_MODS_PYBPIN_H
+#ifndef __MODS_PYBPIN_H__
+#define __MODS_PYBPIN_H__
 
 #include "chip/M480.h"
 
@@ -50,7 +24,7 @@ typedef struct {
     uint8_t             dir;
 	uint8_t             pull;
 	uint8_t             IRQn;
-    uint8_t             irq_trigger;
+    uint32_t            irq_trigger;
     uint8_t             irq_priority;   // 中断优先级
     mp_obj_t            irq_callback;   // 中断处理函数
 } pin_obj_t;
@@ -70,4 +44,4 @@ void pin_config_by_value(pin_obj_t *self, uint af_value, uint dir, uint pull);
 
 void pin_config_pull(mp_obj_t name, uint pull);
 
-#endif //MICROPY_INCLUDED_M480_MODS_PYBPIN_H
+#endif

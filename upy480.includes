@@ -1,4 +1,5 @@
 C:\Ubuntu\bin\gcc-arm-none\arm-none-eabi\include
+D:\Program\Ubuntu\bin\gcc-arm-none\arm-none-eabi\include
 .
 lib/cmsis/inc
 ports/m480
@@ -7,8 +8,6 @@ ports/m480/chip/regs
 ports/m480/mods
 ports/m480/misc
 ports/m480/rtos
-ports/m480/rtos/include
-ports/m480/rtos/ports/ARM_CM4
 ports/m480/boards/M482Lite
 ports/m480/build-M482Lite
 ports/m480/build-M482Lite/genhdr

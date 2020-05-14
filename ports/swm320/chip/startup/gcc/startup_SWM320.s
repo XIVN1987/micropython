@@ -20,7 +20,7 @@ __StackTop:
     .globl    __HeapBase
     .globl    __HeapLimit
 __HeapBase:
-    .space    0x18000
+    .space    0x4000
 __HeapLimit:
 
 
@@ -69,7 +69,7 @@ __isr_vector:
     .long     GPIOC4_Handler
     .long     GPIOC5_Handler
     .long     GPIOC6_Handler
-    .long     GPIOC7_Handler                                 
+    .long     GPIOC7_Handler
     .long     GPIOM0_Handler
     .long     GPIOM1_Handler
     .long     GPIOM2_Handler
@@ -77,7 +77,7 @@ __isr_vector:
     .long     GPIOM4_Handler
     .long     GPIOM5_Handler
     .long     GPIOM6_Handler
-    .long     GPIOM7_Handler                                            
+    .long     GPIOM7_Handler
     .long     DMA_Handler
     .long     LCD_Handler
     .long     NORFLC_Handler
@@ -95,7 +95,7 @@ __isr_vector:
     .long     SPI0_Handler
     .long     ADC0_Handler
     .long     RTC_Handler
-    .long     ANAC_Handler
+    .long     BOD_Handler
     .long     SDIO_Handler
     .long     GPIOA_Handler
     .long     GPIOB_Handler
@@ -107,11 +107,11 @@ __isr_vector:
     .long     FPU_Handler
     .long     SPI1_Handler
     .long     TIMR0_Handler
-	.long     TIMR1_Handler
-	.long     TIMR2_Handler
-	.long     TIMR3_Handler
-	.long     TIMR4_Handler
-	.long     TIMR5_Handler
+    .long     TIMR1_Handler
+    .long     TIMR2_Handler
+    .long     TIMR3_Handler
+    .long     TIMR4_Handler
+    .long     TIMR5_Handler
 
 
 	.section .text.Reset_Handler
@@ -220,7 +220,7 @@ Reset_Handler:
     def_default_handler    SPI0_Handler
     def_default_handler    ADC0_Handler
     def_default_handler    RTC_Handler
-    def_default_handler    ANAC_Handler
+    def_default_handler    BOD_Handler
     def_default_handler    SDIO_Handler
     def_default_handler    GPIOA_Handler
     def_default_handler    GPIOB_Handler
@@ -232,11 +232,11 @@ Reset_Handler:
     def_default_handler    FPU_Handler
     def_default_handler    SPI1_Handler
     def_default_handler    TIMR0_Handler
-	def_default_handler    TIMR1_Handler
-	def_default_handler    TIMR2_Handler
-	def_default_handler    TIMR3_Handler
-	def_default_handler    TIMR4_Handler
-	def_default_handler    TIMR5_Handler
+    def_default_handler    TIMR1_Handler
+    def_default_handler    TIMR2_Handler
+    def_default_handler    TIMR3_Handler
+    def_default_handler    TIMR4_Handler
+    def_default_handler    TIMR5_Handler
 
     def_default_handler    Default_Handler
 

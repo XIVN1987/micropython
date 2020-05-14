@@ -1,30 +1,3 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013, 2014 Damien P. George
- * Copyright (c) 2015 Daniel Campora
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -37,11 +10,10 @@
 #include "py/mphal.h"
 #include "lib/utils/interrupt_char.h"
 #include "pybuart.h"
-#include "mpirq.h"
 #include "mperror.h"
 #include "pybpin.h"
 #include "pins.h"
-#include "moduos.h"
+
 
 /// \moduleref pyb
 /// \class UART - duplex serial communication bus
@@ -96,8 +68,6 @@ STATIC pyb_uart_obj_t pyb_uart_obj[PYB_NUM_UARTS] = {
     {.uart_id = PYB_UART_1, .UARTx = UART1, .baudrate = 0, .read_buf = NULL},
     {.uart_id = PYB_UART_2, .UARTx = UART2, .baudrate = 0, .read_buf = NULL}
 };
-
-STATIC const mp_irq_methods_t uart_irq_methods;
 
 /******************************************************************************
  DEFINE PUBLIC FUNCTIONS
@@ -195,31 +165,6 @@ STATIC bool uart_rx_wait (pyb_uart_obj_t *self) {
     }
 }
 
-STATIC mp_obj_t uart_irq_new (pyb_uart_obj_t *self, byte trigger, mp_int_t priority, mp_obj_t handler) {
-    // disable the uart interrupts before updating anything
-    uart_irq_disable (self);
-
-    switch (self->uart_id) {
-    case PYB_UART_1:
-        NVIC_SetPriority(UART1_IRQ, priority);
-        break;
-
-    case PYB_UART_2:
-        NVIC_SetPriority(UART2_IRQ, priority);
-        break;
-
-    default:
-        break;
-    }
-
-    // create the callback
-    mp_obj_t _irq = mp_irq_new ((mp_obj_t)self, handler, &uart_irq_methods);
-
-    // enable the interrupts now
-    self->irq_trigger = trigger;
-    uart_irq_enable (self);
-    return _irq;
-}
 
 STATIC void UARTGenericIntHandler(uint32_t uart_id) {
     pyb_uart_obj_t *self = &pyb_uart_obj[uart_id];
@@ -232,7 +177,7 @@ STATIC void UARTGenericIntHandler(uint32_t uart_id) {
 
         while (self->UARTx->LSR & UART_LSR_RDA_Msk) {
             int data = self->UARTx->RBR;
-            if (MP_STATE_PORT(os_term_dup_obj) && MP_STATE_PORT(os_term_dup_obj)->stream_o == self && data == mp_interrupt_char) {
+            if (MP_STATE_PORT(dupterm_objs[0]) && MP_STATE_PORT(dupterm_objs[0]) == self && data == mp_interrupt_char) {
                 // raise an exception when interrupts are finished
                 mp_keyboard_interrupt();
             } else { // there's always a read buffer available
@@ -244,12 +189,6 @@ STATIC void UARTGenericIntHandler(uint32_t uart_id) {
                 }
             }
         }
-    }
-
-    // check the flags to see if the user handler should be called
-    if ((self->irq_trigger & self->irq_flags) && self->irq_enabled) {
-        // call the user defined handler
-        mp_irq_handler(mp_irq_find(self));
     }
 
     // clear the flags
@@ -264,24 +203,6 @@ void UART2_Handler(void) {
     UARTGenericIntHandler(PYB_UART_2);
 }
 
-STATIC void uart_irq_enable (mp_obj_t self_in) {
-    pyb_uart_obj_t *self = self_in;
-    // check for any of the rx interrupt types
-    if (self->irq_trigger & (UART_TRIGGER_RX_ANY | UART_TRIGGER_RX_HALF | UART_TRIGGER_RX_FULL)) {
-        self->UARTx->IER |= (1 << UART_IER_RDA_Pos);
-    }
-    self->irq_enabled = true;
-}
-
-STATIC void uart_irq_disable (mp_obj_t self_in) {
-    pyb_uart_obj_t *self = self_in;
-    self->irq_enabled = false;
-}
-
-STATIC int uart_irq_flags (mp_obj_t self_in) {
-    pyb_uart_obj_t *self = self_in;
-    return self->irq_flags;
-}
 
 /******************************************************************************/
 /* MicroPython bindings                                                      */
@@ -362,11 +283,6 @@ STATIC mp_obj_t pyb_uart_init_helper(pyb_uart_obj_t *self, const mp_arg_val_t *a
 
     // initialize and enable the uart
     uart_init (self);
-
-    // enable the callback
-    uart_irq_new (self, UART_TRIGGER_RX_ANY, NVIC_PRIORITY_LVL_3, mp_const_none);
-    // disable the irq (from the user point of view)
-    uart_irq_disable(self);
 
     return mp_const_none;
 
@@ -453,30 +369,6 @@ STATIC mp_obj_t pyb_uart_sendbreak(mp_obj_t self_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_uart_sendbreak_obj, pyb_uart_sendbreak);
 
-/// \method irq(trigger, priority, handler, wake)
-STATIC mp_obj_t pyb_uart_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    mp_arg_val_t args[mp_irq_INIT_NUM_ARGS];
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, mp_irq_INIT_NUM_ARGS, mp_irq_init_args, args);
-
-    // check if any parameters were passed
-    pyb_uart_obj_t *self = pos_args[0];
-
-    // convert the priority to the correct value
-    uint priority = mp_irq_translate_priority (args[1].u_int);
-
-    // check the trigger
-    uint trigger = mp_obj_get_int(args[0].u_obj);
-    if (!trigger || trigger > (UART_TRIGGER_RX_ANY | UART_TRIGGER_RX_HALF | UART_TRIGGER_RX_FULL | UART_TRIGGER_TX_DONE)) {
-        goto invalid_args;
-    }
-
-    // register a new callback
-    return uart_irq_new (self, trigger, priority, args[2].u_obj);
-
-invalid_args:
-    mp_raise_ValueError(mpexception_value_invalid_arguments);
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_uart_irq_obj, 1, pyb_uart_irq);
 
 STATIC const mp_rom_map_elem_t pyb_uart_locals_dict_table[] = {
     // instance methods
@@ -484,7 +376,6 @@ STATIC const mp_rom_map_elem_t pyb_uart_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_deinit),      MP_ROM_PTR(&pyb_uart_deinit_obj) },
     { MP_ROM_QSTR(MP_QSTR_any),         MP_ROM_PTR(&pyb_uart_any_obj) },
     { MP_ROM_QSTR(MP_QSTR_sendbreak),   MP_ROM_PTR(&pyb_uart_sendbreak_obj) },
-    { MP_ROM_QSTR(MP_QSTR_irq),         MP_ROM_PTR(&pyb_uart_irq_obj) },
 
     /// \method read([nbytes])
     { MP_ROM_QSTR(MP_QSTR_read),        MP_ROM_PTR(&mp_stream_read_obj) },
@@ -566,12 +457,6 @@ STATIC const mp_stream_p_t uart_stream_p = {
     .is_text = false,
 };
 
-STATIC const mp_irq_methods_t uart_irq_methods = {
-    .init = pyb_uart_irq,
-    .enable = uart_irq_enable,
-    .disable = uart_irq_disable,
-    .flags = uart_irq_flags
-};
 
 const mp_obj_type_t pyb_uart_type = {
     { &mp_type_type },

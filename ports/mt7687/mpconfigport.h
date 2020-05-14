@@ -1,29 +1,5 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013, 2014 Damien P. George
- * Copyright (c) 2015 Daniel Campora
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+#ifndef __MPCONFIGPORT_H__
+#define __MPCONFIGPORT_H__
 
 #include <stdint.h>
 
@@ -57,9 +33,9 @@
 // fatfs configuration used in ffconf.h
 #define MICROPY_FATFS_ENABLE_LFN                    (2)
 #define MICROPY_FATFS_MAX_LFN                       (MICROPY_ALLOC_PATH_MAX)
-#define MICROPY_FATFS_LFN_CODE_PAGE                 (437) // 1=SFN/ANSI 437=LFN/U.S.(OEM)
+#define MICROPY_FATFS_LFN_CODE_PAGE                 437 // 1=SFN/ANSI 437=LFN/U.S.(OEM)
 #define MICROPY_FATFS_RPATH                         (2)
-#define MICROPY_FATFS_REENTRANT                     (1)
+#define MICROPY_FATFS_REENTRANT                     (0)
 #define MICROPY_FATFS_TIMEOUT                       (2500)
 #define MICROPY_FATFS_SYNC_T                        SemaphoreHandle_t
 
@@ -68,7 +44,6 @@
 #define MICROPY_CAN_OVERRIDE_BUILTINS               (1)
 #define MICROPY_USE_INTERNAL_ERRNO                  (1)
 #define MICROPY_VFS                                 (1)
-#define MICROPY_VFS_FAT                             (1)
 #define MICROPY_PY_ASYNC_AWAIT                      (0)
 #define MICROPY_PY_ALL_SPECIAL_METHODS              (1)
 #define MICROPY_PY_BUILTINS_INPUT                   (1)
@@ -92,7 +67,7 @@
 #define MICROPY_PY_UERRNO_ERRORCODE                 (0)
 #define MICROPY_PY_THREAD                           (1)
 #define MICROPY_PY_THREAD_GIL                       (1)
-#define MICROPY_PY_UBINASCII                        (0)
+#define MICROPY_PY_UBINASCII                        (1)
 #define MICROPY_PY_UCTYPES                          (0)
 #define MICROPY_PY_UZLIB                            (0)
 #define MICROPY_PY_UJSON                            (1)
@@ -101,6 +76,9 @@
 #define MICROPY_PY_UHASHLIB                         (0)
 #define MICROPY_PY_USELECT                          (1)
 #define MICROPY_PY_UTIME_MP_HAL                     (1)
+
+#define MICROPY_PY_OS_DUPTERM                       (3)
+#define MICROPY_PY_UOS_DUPTERM_BUILTIN_STREAM       (1)
 
 #define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF      (1)
 #define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE        (0)
@@ -153,22 +131,6 @@ extern const struct _mp_obj_module_t mp_module_ussl;
     { MP_ROM_QSTR(MP_QSTR_ussl),        MP_ROM_PTR(&mp_module_ussl) },      \
 */
 
-#define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \
-    { MP_ROM_QSTR(MP_QSTR_os),          MP_ROM_PTR(&mp_module_uos) },       \
-    { MP_ROM_QSTR(MP_QSTR_machine),     MP_ROM_PTR(&machine_module) },      \
-    { MP_ROM_QSTR(MP_QSTR_time),        MP_ROM_PTR(&mp_module_utime) },     \
-    { MP_ROM_QSTR(MP_QSTR_select),      MP_ROM_PTR(&mp_module_uselect) },   \
-    { MP_ROM_QSTR(MP_QSTR_binascii),    MP_ROM_PTR(&mp_module_ubinascii) }, \
-    { MP_ROM_QSTR(MP_QSTR_re),          MP_ROM_PTR(&mp_module_ure) },       \
-    { MP_ROM_QSTR(MP_QSTR_json),        MP_ROM_PTR(&mp_module_ujson) },     \
-    { MP_ROM_QSTR(MP_QSTR_errno),       MP_ROM_PTR(&mp_module_uerrno) },    \
-    { MP_ROM_QSTR(MP_QSTR_struct),      MP_ROM_PTR(&mp_module_ustruct) },   \
-
-/*
-    { MP_ROM_QSTR(MP_QSTR_socket),      MP_ROM_PTR(&mp_module_usocket) },   \
-    { MP_ROM_QSTR(MP_QSTR_binascii),    MP_ROM_PTR(&mp_module_ubinascii) }, \
-    { MP_ROM_QSTR(MP_QSTR_ssl),         MP_ROM_PTR(&mp_module_ussl) },      \
-*/
 
 // extra constants
 #define MICROPY_PORT_CONSTANTS 
@@ -179,11 +141,7 @@ extern const struct _mp_obj_module_t mp_module_ussl;
 #define MP_STATE_PORT MP_STATE_VM
 #define MICROPY_PORT_ROOT_POINTERS                                        \
     const char *readline_hist[8];                                         \
-    mp_obj_t machine_config_main;                                         \
-    mp_obj_list_t mp_irq_obj_list;                                        \
-    mp_obj_list_t pyb_timer_channel_obj_list;                             \
     struct _pyb_uart_obj_t *pyb_uart_objs[2];                             \
-    struct _os_term_dup_obj_t *os_term_dup_obj;                           \
 
 // type definitions for the specific machine
 #define MICROPY_MAKE_POINTER_CALLABLE(p)            ((void*)((mp_uint_t)(p) | 1))
@@ -212,9 +170,11 @@ static inline mp_uint_t disable_irq(void) {
 
 #define MICROPY_BEGIN_ATOMIC_SECTION()              disable_irq()
 #define MICROPY_END_ATOMIC_SECTION(state)           enable_irq(state)
-#define MICROPY_EVENT_POLL_HOOK                     __WFI();
+#define MICROPY_EVENT_POLL_HOOK                     {}
 
 
 #include <alloca.h>
 
 #include "mpconfigboard.h"
+
+#endif
