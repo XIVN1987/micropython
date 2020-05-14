@@ -1,1 +1,0 @@
-MICROPY_VFS_FAT = 1

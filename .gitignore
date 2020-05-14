@@ -46,5 +46,5 @@ user.props
 ######################
 genrst/
 
-# VSCode Project file
-.vscode/*
+# Qt Creator Project file
+*.creator.user
