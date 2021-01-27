@@ -47,4 +47,4 @@ user.props
 genrst/
 
 # Qt Creator Project file
-*.creator.user
+*.qbs.user
