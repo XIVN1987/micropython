@@ -2,14 +2,12 @@
 ###################
 *.o
 *.a
-*.P
 *.elf
 *.bin
 *.map
 *.hex
 *.dis
 *.exe
-*.qstr
 
 # Packages
 ############
