@@ -4,7 +4,7 @@
 123
 123
 1ABCDEF
-ab abc
+ab abc ' abc' ' True' 'Tru'
 
 false true
 (null)
@@ -80,6 +80,9 @@ unlocked
 1
 2
 3
+KeyboardInterrupt: 
+KeyboardInterrupt: 
+10
 # ringbuf
 99 0
 98 1
@@ -115,6 +118,14 @@ create: 1 1 1 1 1
 pop all: 1 3 4
 create: 3 3 3 1 1 1
 pop all: 1 2 4 5
+# mp_obj_is_type
+1 1
+0 0
+1 1
+1 1
+0 0
+1 1
+# end coverage.c
 0123456789 b'0123456789'
 7300
 7300
@@ -133,6 +144,9 @@ OSError
 0
 None
 None
+cpp None
+5
+(3, 'hellocpp')
 frzstr1
 frzstr1.py
 frzmpy1

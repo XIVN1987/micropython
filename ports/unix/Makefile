@@ -14,7 +14,7 @@ include ../../py/mkenv.mk
 include $(VARIANT_DIR)/mpconfigvariant.mk
 
 # use FROZEN_MANIFEST for new projects, others are legacy
-FROZEN_MANIFEST ?= manifest.py
+FROZEN_MANIFEST ?= variants/manifest.py
 FROZEN_DIR =
 FROZEN_MPY_DIR =
 
@@ -31,7 +31,7 @@ UNAME_S := $(shell uname -s)
 # include py core make definitions
 include $(TOP)/py/py.mk
 
-GIT_SUBMODULES = lib/axtls lib/berkeley-db-1.xx lib/libffi
+GIT_SUBMODULES += lib/axtls lib/berkeley-db-1.xx lib/libffi
 
 INC +=  -I.
 INC +=  -I$(TOP)
@@ -39,15 +39,25 @@ INC += -I$(BUILD)
 
 # compiler settings
 CWARN = -Wall -Werror
-CWARN += -Wpointer-arith -Wuninitialized
-CFLAGS = $(INC) $(CWARN) -std=gnu99 -DUNIX $(CFLAGS_MOD) $(COPT) -I$(VARIANT_DIR) $(CFLAGS_EXTRA)
+CWARN += -Wextra -Wno-unused-parameter -Wpointer-arith -Wdouble-promotion -Wfloat-conversion
+CFLAGS += $(INC) $(CWARN) -std=gnu99 -DUNIX $(CFLAGS_MOD) $(COPT) -I$(VARIANT_DIR) $(CFLAGS_EXTRA)
 
 # Debugging/Optimization
 ifdef DEBUG
-CFLAGS += -g
-COPT = -O0
+COPT ?= -O0
 else
-COPT = -Os -fdata-sections -ffunction-sections -DNDEBUG
+COPT ?= -Os
+COPT += -DNDEBUG
+endif
+
+# Remove unused sections.
+COPT += -fdata-sections -ffunction-sections
+
+# Always enable symbols -- They're occasionally useful, and don't make it into the
+# final .bin/.hex/.dfu so the extra size doesn't matter.
+CFLAGS += -g
+
+ifndef DEBUG
 # _FORTIFY_SOURCE is a feature in gcc/glibc which is intended to provide extra
 # security for detecting buffer overflows. Some distros (Ubuntu at the very least)
 # have it enabled by default.
@@ -91,7 +101,7 @@ else
 # Use gcc syntax for map file
 LDFLAGS_ARCH = -Wl,-Map=$@.map,--cref -Wl,--gc-sections
 endif
-LDFLAGS = $(LDFLAGS_MOD) $(LDFLAGS_ARCH) -lm $(LDFLAGS_EXTRA)
+LDFLAGS += $(LDFLAGS_MOD) $(LDFLAGS_ARCH) -lm $(LDFLAGS_EXTRA)
 
 # Flags to link with pthread library
 LIBPTHREAD = -lpthread
@@ -124,6 +134,61 @@ CFLAGS_MOD += -DMICROPY_PY_THREAD=1 -DMICROPY_PY_THREAD_GIL=0
 LDFLAGS_MOD += $(LIBPTHREAD)
 endif
 
+# If the variant enables it, enable modbluetooth.
+ifeq ($(MICROPY_PY_BLUETOOTH),1)
+
+HAVE_LIBUSB := $(shell (which pkg-config > /dev/null && pkg-config --exists libusb-1.0) 2>/dev/null && echo '1')
+
+# Only one stack can be enabled.
+ifeq ($(MICROPY_BLUETOOTH_NIMBLE),1)
+ifeq ($(MICROPY_BLUETOOTH_BTSTACK),1)
+$(error Cannot enable both NimBLE and BTstack at the same time)
+endif
+endif
+
+# Default to btstack, but a variant (or make command line) can set NimBLE
+# explicitly (which is always via H4 UART).
+ifneq ($(MICROPY_BLUETOOTH_NIMBLE),1)
+ifneq ($(MICROPY_BLUETOOTH_BTSTACK),1)
+MICROPY_BLUETOOTH_BTSTACK ?= 1
+endif
+endif
+
+CFLAGS_MOD += -DMICROPY_PY_BLUETOOTH=1
+CFLAGS_MOD += -DMICROPY_PY_BLUETOOTH_ENABLE_CENTRAL_MODE=1
+
+ifeq ($(MICROPY_BLUETOOTH_BTSTACK),1)
+
+# Figure out which BTstack transport to use.
+ifeq ($(MICROPY_BLUETOOTH_BTSTACK_H4),1)
+ifeq ($(MICROPY_BLUETOOTH_BTSTACK_USB),1)
+$(error Cannot enable BTstack support for USB and H4 UART at the same time)
+endif
+else
+ifeq ($(HAVE_LIBUSB),1)
+# Default to btstack-over-usb.
+MICROPY_BLUETOOTH_BTSTACK_USB ?= 1
+else
+# Fallback to HCI controller via a H4 UART (e.g. Zephyr on nRF) over a /dev/tty serial port.
+MICROPY_BLUETOOTH_BTSTACK_H4 ?= 1
+endif
+endif
+
+# BTstack is enabled.
+GIT_SUBMODULES += lib/btstack
+include $(TOP)/extmod/btstack/btstack.mk
+
+else
+
+# NimBLE is enabled.
+GIT_SUBMODULES += lib/mynewt-nimble
+CFLAGS_MOD += -DMICROPY_PY_BLUETOOTH_ENABLE_L2CAP_CHANNELS=1
+include $(TOP)/extmod/nimble/nimble.mk
+
+endif
+
+endif
+
 ifeq ($(MICROPY_PY_FFI),1)
 
 ifeq ($(MICROPY_STANDALONE),1)
@@ -154,35 +219,44 @@ SRC_MOD += modjni.c
 endif
 
 # source files
-SRC_C = \
+SRC_C += \
 	main.c \
 	gccollect.c \
 	unix_mphal.c \
 	mpthreadport.c \
 	input.c \
-	file.c \
 	modmachine.c \
 	modos.c \
 	moduos_vfs.c \
 	modtime.c \
 	moduselect.c \
 	alloc.c \
-	coverage.c \
 	fatfs_port.c \
+	mpbthciport.c \
+	mpbtstackport_common.c \
+	mpbtstackport_h4.c \
+	mpbtstackport_usb.c \
+	mpnimbleport.c \
 	$(SRC_MOD) \
 	$(wildcard $(VARIANT_DIR)/*.c)
 
-LIB_SRC_C = $(addprefix lib/,\
+LIB_SRC_C += $(addprefix lib/,\
 	$(LIB_SRC_C_EXTRA) \
 	timeutils/timeutils.c \
+	utils/gchelper_generic.c \
 	)
+
+SRC_CXX += \
+	$(SRC_MOD_CXX)
 
 OBJ = $(PY_O)
 OBJ += $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_CXX:.cpp=.o))
 OBJ += $(addprefix $(BUILD)/, $(LIB_SRC_C:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(EXTMOD_SRC_C:.c=.o))
 
 # List of sources for qstr extraction
-SRC_QSTR += $(SRC_C) $(LIB_SRC_C)
+SRC_QSTR += $(SRC_C) $(SRC_CXX) $(LIB_SRC_C) $(EXTMOD_SRC_C)
 # Append any auto-generated sources that are needed by sources listed in
 # SRC_QSTR
 SRC_QSTR_AUTO_DEPS +=
@@ -200,6 +274,20 @@ ifneq ($(FROZEN_MANIFEST)$(FROZEN_DIR),)
 CFLAGS += -DMICROPY_MODULE_FROZEN_STR
 endif
 
+HASCPP17 = $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 7)
+ifeq ($(HASCPP17), 1)
+	CXXFLAGS += -std=c++17
+else
+	CXXFLAGS += -std=c++11
+endif
+CXXFLAGS += $(filter-out -Wmissing-prototypes -Wold-style-definition -std=gnu99,$(CFLAGS) $(CXXFLAGS_MOD))
+
+ifeq ($(MICROPY_FORCE_32BIT),1)
+RUN_TESTS_MPY_CROSS_FLAGS = --mpy-cross-flags='-mcache-lookup-bc -march=x86'
+else
+RUN_TESTS_MPY_CROSS_FLAGS = --mpy-cross-flags='-mcache-lookup-bc'
+endif
+
 include $(TOP)/py/mkrules.mk
 
 .PHONY: test test_full
@@ -213,31 +301,13 @@ test_full: $(PROG) $(TOP)/tests/run-tests
 	cd $(TOP)/tests && MICROPY_MICROPYTHON=../$(DIRNAME)/$(PROG) ./run-tests
 	cd $(TOP)/tests && MICROPY_MICROPYTHON=../$(DIRNAME)/$(PROG) ./run-tests -d thread
 	cd $(TOP)/tests && MICROPY_MICROPYTHON=../$(DIRNAME)/$(PROG) ./run-tests --emit native
-	cd $(TOP)/tests && MICROPY_MICROPYTHON=../$(DIRNAME)/$(PROG) ./run-tests --via-mpy -d basics float micropython
-	cd $(TOP)/tests && MICROPY_MICROPYTHON=../$(DIRNAME)/$(PROG) ./run-tests --via-mpy --emit native -d basics float micropython
+	cd $(TOP)/tests && MICROPY_MICROPYTHON=../$(DIRNAME)/$(PROG) ./run-tests --via-mpy $(RUN_TESTS_MPY_CROSS_FLAGS) -d basics float micropython
+	cd $(TOP)/tests && MICROPY_MICROPYTHON=../$(DIRNAME)/$(PROG) ./run-tests --via-mpy $(RUN_TESTS_MPY_CROSS_FLAGS) --emit native -d basics float micropython
 	cat $(TOP)/tests/basics/0prelim.py | ./$(PROG) | grep -q 'abc'
 
 test_gcov: test_full
 	gcov -o $(BUILD)/py $(TOP)/py/*.c
 	gcov -o $(BUILD)/extmod $(TOP)/extmod/*.c
-
-# Maintain historical targets from pre-variant configurations.
-fast:
-	$(MAKE) VARIANT=fast
-
-minimal:
-	$(MAKE) VARIANT=minimal
-
-nanbox:
-	$(MAKE) VARIANT=nanbox
-
-freedos:
-	$(MAKE) VARIANT=freedos
-
-coverage:
-	$(MAKE) VARIANT=coverage
-coverage_test:
-	$(MAKE) VARIANT=coverage test_gcov
 
 # Value of configure's --host= option (required for cross-compilation).
 # Deduce it from CROSS_COMPILE by default, but can be overridden.
@@ -266,3 +336,13 @@ axtls: $(TOP)/lib/axtls/README
 $(TOP)/lib/axtls/README:
 	@echo "You cloned without --recursive, fetching submodules for you."
 	(cd $(TOP); git submodule update --init --recursive)
+
+PREFIX = /usr/local
+BINDIR = $(DESTDIR)$(PREFIX)/bin
+
+install: $(PROG)
+	install -d $(BINDIR)
+	install $(PROG) $(BINDIR)/$(PROG)
+
+uninstall:
+	-rm $(BINDIR)/$(PROG)

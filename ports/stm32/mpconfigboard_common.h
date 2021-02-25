@@ -37,6 +37,11 @@
 #define MICROPY_PY_STM (1)
 #endif
 
+// Whether to include the pyb module
+#ifndef MICROPY_PY_PYB
+#define MICROPY_PY_PYB (1)
+#endif
+
 // Whether to include legacy functions and classes in the pyb module
 #ifndef MICROPY_PY_PYB_LEGACY
 #define MICROPY_PY_PYB_LEGACY (1)
@@ -122,9 +127,39 @@
 #define MICROPY_HW_HAS_LCD (0)
 #endif
 
+// Whether to automatically mount (and boot from) the flash filesystem
+#ifndef MICROPY_HW_FLASH_MOUNT_AT_BOOT
+#define MICROPY_HW_FLASH_MOUNT_AT_BOOT (MICROPY_HW_ENABLE_STORAGE)
+#endif
+
 // The volume label used when creating the flash filesystem
 #ifndef MICROPY_HW_FLASH_FS_LABEL
 #define MICROPY_HW_FLASH_FS_LABEL "pybflash"
+#endif
+
+// Function to determine if the given can_id is reserved for system use or not.
+#ifndef MICROPY_HW_CAN_IS_RESERVED
+#define MICROPY_HW_CAN_IS_RESERVED(can_id) (false)
+#endif
+
+// Function to determine if the given i2c_id is reserved for system use or not.
+#ifndef MICROPY_HW_I2C_IS_RESERVED
+#define MICROPY_HW_I2C_IS_RESERVED(i2c_id) (false)
+#endif
+
+// Function to determine if the given spi_id is reserved for system use or not.
+#ifndef MICROPY_HW_SPI_IS_RESERVED
+#define MICROPY_HW_SPI_IS_RESERVED(spi_id) (false)
+#endif
+
+// Function to determine if the given tim_id is reserved for system use or not.
+#ifndef MICROPY_HW_TIM_IS_RESERVED
+#define MICROPY_HW_TIM_IS_RESERVED(tim_id) (false)
+#endif
+
+// Function to determine if the given uart_id is reserved for system use or not.
+#ifndef MICROPY_HW_UART_IS_RESERVED
+#define MICROPY_HW_UART_IS_RESERVED(uart_id) (false)
 #endif
 
 /*****************************************************************************/
@@ -146,6 +181,7 @@
 #define MICROPY_HW_MAX_I2C (2)
 #define MICROPY_HW_MAX_TIMER (17)
 #define MICROPY_HW_MAX_UART (8)
+#define MICROPY_HW_MAX_LPUART (0)
 
 // Configuration for STM32F4 series
 #elif defined(STM32F4)
@@ -165,6 +201,7 @@
 #else
 #define MICROPY_HW_MAX_UART (6)
 #endif
+#define MICROPY_HW_MAX_LPUART (0)
 
 // Configuration for STM32F7 series
 #elif defined(STM32F7)
@@ -179,6 +216,7 @@
 #define MICROPY_HW_MAX_I2C (4)
 #define MICROPY_HW_MAX_TIMER (17)
 #define MICROPY_HW_MAX_UART (8)
+#define MICROPY_HW_MAX_LPUART (0)
 
 // Configuration for STM32H7 series
 #elif defined(STM32H7)
@@ -188,6 +226,7 @@
 #define MICROPY_HW_MAX_I2C (4)
 #define MICROPY_HW_MAX_TIMER (17)
 #define MICROPY_HW_MAX_UART (8)
+#define MICROPY_HW_MAX_LPUART (1)
 
 // Configuration for STM32L0 series
 #elif defined(STM32L0)
@@ -197,6 +236,7 @@
 #define MICROPY_HW_MAX_I2C (3)
 #define MICROPY_HW_MAX_TIMER (22)
 #define MICROPY_HW_MAX_UART (5)
+#define MICROPY_HW_MAX_LPUART (1)
 
 // Configuration for STM32L4 series
 #elif defined(STM32L4)
@@ -205,7 +245,8 @@
 #define PYB_EXTI_NUM_VECTORS (23)
 #define MICROPY_HW_MAX_I2C (4)
 #define MICROPY_HW_MAX_TIMER (17)
-#define MICROPY_HW_MAX_UART (6)
+#define MICROPY_HW_MAX_UART (5)
+#define MICROPY_HW_MAX_LPUART (1)
 
 // Configuration for STM32WB series
 #elif defined(STM32WB)
@@ -215,6 +256,11 @@
 #define MICROPY_HW_MAX_I2C (3)
 #define MICROPY_HW_MAX_TIMER (17)
 #define MICROPY_HW_MAX_UART (1)
+#define MICROPY_HW_MAX_LPUART (1)
+
+#ifndef MICROPY_HW_STM32WB_FLASH_SYNCRONISATION
+#define MICROPY_HW_STM32WB_FLASH_SYNCRONISATION (1)
+#endif
 
 #else
 #error Unsupported MCU series
@@ -255,6 +301,14 @@
 #define MICROPY_HW_BDEV_IOCTL flash_bdev_ioctl
 #define MICROPY_HW_BDEV_READBLOCK flash_bdev_readblock
 #define MICROPY_HW_BDEV_WRITEBLOCK flash_bdev_writeblock
+#endif
+
+// Whether to enable caching for external SPI flash, to allow block writes that are
+// smaller than the native page-erase size of the SPI flash, eg when FAT FS is used.
+// Enabling this enables spi_bdev_readblocks() and spi_bdev_writeblocks() functions,
+// and requires a valid mp_spiflash_config_t.cache pointer.
+#ifndef MICROPY_HW_SPIFLASH_ENABLE_CACHE
+#define MICROPY_HW_SPIFLASH_ENABLE_CACHE (0)
 #endif
 
 // Enable the storage sub-system if a block device is defined
@@ -314,11 +368,11 @@
 // D-cache clean/invalidate helpers
 #if __DCACHE_PRESENT == 1
 #define MP_HAL_CLEANINVALIDATE_DCACHE(addr, size) \
-    (SCB_CleanInvalidateDCache_by_Addr((uint32_t*)((uint32_t)addr & ~0x1f), \
-        ((uint32_t)((uint8_t*)addr + size + 0x1f) & ~0x1f) - ((uint32_t)addr & ~0x1f)))
+    (SCB_CleanInvalidateDCache_by_Addr((uint32_t *)((uint32_t)addr & ~0x1f), \
+    ((uint32_t)((uint8_t *)addr + size + 0x1f) & ~0x1f) - ((uint32_t)addr & ~0x1f)))
 #define MP_HAL_CLEAN_DCACHE(addr, size) \
-    (SCB_CleanDCache_by_Addr((uint32_t*)((uint32_t)addr & ~0x1f), \
-        ((uint32_t)((uint8_t*)addr + size + 0x1f) & ~0x1f) - ((uint32_t)addr & ~0x1f)))
+    (SCB_CleanDCache_by_Addr((uint32_t *)((uint32_t)addr & ~0x1f), \
+    ((uint32_t)((uint8_t *)addr + size + 0x1f) & ~0x1f) - ((uint32_t)addr & ~0x1f)))
 #else
 #define MP_HAL_CLEANINVALIDATE_DCACHE(addr, size)
 #define MP_HAL_CLEAN_DCACHE(addr, size)

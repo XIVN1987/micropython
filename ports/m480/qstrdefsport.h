@@ -25,8 +25,10 @@
  * THE SOFTWARE.
  */
 
-// for machine module
-Q(/)
+// qstrs specific to this port, only needed if they aren't auto-generated
+// *FORMAT-OFF*
+
 // entries for sys.path
+Q(/)
 Q(/flash)
 Q(/flash/lib)
