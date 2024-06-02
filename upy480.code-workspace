@@ -1,0 +1,43 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/*.o": true,
+			"**/*.P": true,
+			"**/ports/[!m]*": true,
+			"**/ports/*[!0]": true,
+		},
+		"C_Cpp.default.compilerPath": "C:/Ubuntu/bin/gcc-arm-win/bin/arm-none-eabi-gcc.exe",
+		"C_Cpp.default.includePath": [
+			"${workspaceFolder}/**"
+		],
+		"C_Cpp.default.defines": [
+		],
+		"cortex-debug.registerUseNaturalFormat": false,
+		"files.associations": {
+			"*.h": "c"
+		},
+		"cortex-debug.variableUseNaturalFormat": false
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"type": "cortex-debug",
+				"name": "Cortex Debug",
+				"cwd": "${workspaceRoot}/ports/m480",
+				"executable": "./build-M480Lite/micropython.elf",
+				"runToEntryPoint": "main",
+				"request": "launch",
+				"servertype": "pyocd",
+				"targetId": "m487jidae",
+				"svdFile": "ports/m480/M481_v1.svd",
+				"loadFiles": []
+			}
+		]
+	}
+}
